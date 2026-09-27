@@ -5,7 +5,7 @@
 - Family A cannot read Family B (families, members, babies, memories).
 - Family A cannot modify Family B (update/delete no-op, insert rejected).
 - A memory cannot reference a baby from another family (FK).
-- Asset keys must live under the owning family's namespace (check constraint).
+- Asset keys must live under the owning family and memory namespace (check constraint).
 - Viewers cannot create, edit, delete memories or invite.
 - Expired and already-used invitations fail.
 - Revoked members lose read and write access.
@@ -28,3 +28,4 @@
 - Presigned PUT cannot cap object size → quota enforcement at asset-row insert (M8).
 - Owner can demote/remove themselves leaving an ownerless family → guard in M3 (roles).
 - Rate limiting on edge functions → before staging launch.
+- Memory delete cascades asset rows but leaves R2 objects → object deletion (§37, §52) in M1.

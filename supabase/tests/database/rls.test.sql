@@ -1,6 +1,6 @@
 -- Security guarantees from masterplan §36. Run: npm run db:test
 begin;
-select plan(24);
+select plan(25);
 
 -- ---------------------------------------------------------------- fixtures (as postgres, RLS bypassed)
 -- a = owner of A, b = owner of B, v = viewer of A, r = caregiver of A (revoked later), i = invitee
@@ -65,8 +65,11 @@ select throws_ok(
 select throws_ok(
   $$insert into public.memory_assets (memory_id, family_id, object_key, asset_type, mime_type, variant) values ('aaaaaaaa-2222-0000-0000-000000000000', 'aaaaaaaa-0000-0000-0000-000000000000', 'families/bbbbbbbb-0000-0000-0000-000000000000/x.jpg', 'photo', 'image/jpeg', 'display')$$,
   '23514', null, 'asset key must be namespaced by its own family');
+select throws_ok(
+  $$insert into public.memory_assets (memory_id, family_id, object_key, asset_type, mime_type, variant) values ('aaaaaaaa-2222-0000-0000-000000000000', 'aaaaaaaa-0000-0000-0000-000000000000', 'families/aaaaaaaa-0000-0000-0000-000000000000/memories/aaaaaaaa-3333-0000-0000-000000000000/display.jpg', 'photo', 'image/jpeg', 'display')$$,
+  '23514', null, 'asset key must be namespaced by its own memory');
 select lives_ok(
-  $$insert into public.memory_assets (memory_id, family_id, object_key, asset_type, mime_type, variant) values ('aaaaaaaa-2222-0000-0000-000000000000', 'aaaaaaaa-0000-0000-0000-000000000000', 'families/aaaaaaaa-0000-0000-0000-000000000000/x.jpg', 'photo', 'image/jpeg', 'display')$$,
+  $$insert into public.memory_assets (memory_id, family_id, object_key, asset_type, mime_type, variant) values ('aaaaaaaa-2222-0000-0000-000000000000', 'aaaaaaaa-0000-0000-0000-000000000000', 'families/aaaaaaaa-0000-0000-0000-000000000000/memories/aaaaaaaa-2222-0000-0000-000000000000/display.jpg', 'photo', 'image/jpeg', 'display')$$,
   'A can add asset to own memory');
 
 -- ---------------------------------------------------------------- Viewer cannot write

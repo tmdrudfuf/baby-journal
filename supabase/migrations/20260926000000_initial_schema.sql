@@ -77,8 +77,8 @@ create table public.memory_assets (
   hash text,
   created_at timestamptz not null default now(),
   foreign key (memory_id, family_id) references public.memories (id, family_id) on delete cascade,
-  -- Keys are always namespaced by family.
-  check (object_key like 'families/' || family_id::text || '/%'),
+  -- Keys are namespaced by family and memory, so no member can claim another memory's key.
+  check (object_key like 'families/' || family_id::text || '/memories/' || memory_id::text || '/%'),
   unique (memory_id, variant)
 );
 

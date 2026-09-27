@@ -11,7 +11,7 @@ Migrations: `supabase/migrations/`. Tests: `supabase/tests/database/` (pgTAP, `n
 | `family_members` | `(family_id, user_id)`, `role`, `revoked_at` |
 | `babies` | belongs to a family |
 | `memories` | §35 fields; `(baby_id, family_id)` FK guarantees the baby is in the same family |
-| `memory_assets` | R2 object metadata; `(memory_id, family_id)` FK; key must start with `families/{family_id}/` |
+| `memory_assets` | R2 object metadata; `(memory_id, family_id)` FK; key must start with `families/{family_id}/memories/{memory_id}/` |
 | `invitations` | SHA-256 token hash, role (never owner), expiry, single use |
 
 Remaining §34 entities (milestones, tracker_events, comments, reactions, stories, subscriptions, entitlements, ai_jobs, storage_usage, audit_events, …) are added in the milestone that uses them.

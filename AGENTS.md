@@ -15,6 +15,7 @@ Never rely on conversation history. If a decision matters, write it into the rep
 
 - Work milestone-by-milestone (masterplan §57–§67). Do not proceed past a broken milestone.
 - Make the smallest correct change. Match existing style.
+- Migrations are append-only once a persistent database (staging) exists. Until then the initial migration may be edited.
 - Logical commits; push each finished step to `origin/main` while the project is pre-release.
 - Never commit secrets. Only `.env.example` is tracked.
 - Interrupt the human only per masterplan §5 (auth, payment, legal, identity, irreversible prod, product decisions, physical device), using the WHY / ACTION / VERIFY / NEXT format.
