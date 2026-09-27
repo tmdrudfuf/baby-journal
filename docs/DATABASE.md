@@ -16,6 +16,9 @@ Migrations: `supabase/migrations/`. Tests: `supabase/tests/database/` (pgTAP, `n
 | `comments`, `reactions` | Family-visible engagement; **viewers may comment and react** (product decision), never on others' private memories |
 | `milestones` | Confirmed milestones; survive memory deletion (link set null) |
 | `ai_usage` | AI cost telemetry; service role only |
+| `plans` | Config-driven tiers (§31): storage bytes, member limit, originals; edit rows, not code |
+| `entitlements` | Family → plan (+ expiry); written only by the billing backend (service role) |
+| `rate_limits` | Per-user fixed-window counters for edge functions |
 | `media_deletions` | R2 keys queued by an `AFTER DELETE` trigger on `memory_assets`; drained by `media-sign` purge; service role only |
 
 Remaining §34 entities (milestones, tracker_events, comments, reactions, stories, subscriptions, entitlements, ai_jobs, storage_usage, audit_events, …) are added in the milestone that uses them.
@@ -45,3 +48,9 @@ A family always keeps at least one active owner (constraint trigger `family_memb
 | `create_family(name)` | atomic family + owner membership |
 | `create_invitation(fid, role, ttl)` | caregiver+; returns raw token once; ttl ≤ 30 days |
 | `accept_invitation(token)` | rejects expired / used / unknown tokens; re-activates revoked membership |
+
+## Limits
+
+- Storage: `memory_assets` insert refused (23514 `storage quota exceeded`) when a family would exceed its plan; `media-sign` checks before issuing an upload URL. Existing memories are never hidden.
+- Members: `accept_invitation` refuses when the family is at its plan's member limit (`family is full`).
+- Plan hypothesis: free 2 GB / 6 members, plus 25 GB / 10, family 100 GB / 30.

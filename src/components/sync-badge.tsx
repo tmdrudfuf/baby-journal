@@ -16,7 +16,9 @@ export function SyncBadge({ memory }: { memory: Pick<LocalMemory, 'status' | 'at
       <Ionicons name={memory.status === 'failed' ? 'alert-circle-outline' : 'cloud-upload-outline'} size={16} color={theme.textSecondary} />
       <Text variant="caption" color="textSecondary" style={{ flex: 1 }}>
         {memory.status === 'failed'
-          ? `Couldn't upload (${memory.last_error ?? 'not allowed'}). Kept on this phone.`
+          ? /quota/i.test(memory.last_error ?? '')
+            ? 'Family storage is full. Kept on this phone.'
+            : `Couldn't upload (${memory.last_error ?? 'not allowed'}). Kept on this phone.`
           : memory.attempts > 0
             ? 'Will upload when online'
             : 'Uploading…'}

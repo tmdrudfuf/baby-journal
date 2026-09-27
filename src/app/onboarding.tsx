@@ -49,6 +49,7 @@ export default function OnboardingScreen() {
   const join = () =>
     run(async () => {
       const { error } = await supabase.rpc('accept_invitation', { token: code.trim() });
+      if (error?.message.includes('full')) throw new Error('This family has reached its member limit. Ask the owner to remove someone or upgrade.');
       if (error) throw new Error('That invite code is invalid or has expired. Ask for a new one.');
     });
 

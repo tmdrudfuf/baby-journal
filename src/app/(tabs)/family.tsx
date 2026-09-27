@@ -19,12 +19,16 @@ const ROLE_LABEL: Record<Role, string> = {
   viewer: 'Viewer',
 };
 const INVITABLE: Role[] = ['caregiver', 'contributor', 'viewer'];
+const PLAN_LABEL: Record<string, string> = { free: 'Free', plus: 'Plus', family: 'Family' };
+const formatBytes = (b: number) =>
+  b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(b % 1024 ** 3 ? 1 : 0)} GB` : `${Math.max(0.1, b / 1024 ** 2).toFixed(1)} MB`;
 
 export default function FamilyScreen() {
   const baby = useBaby();
   const { session, signOut, refresh, deleteAccount } = useApp();
   const me = session?.user.id;
   const [members, setMembers] = useState<Member[] | null>(null);
+  const [usage, setUsage] = useState<{ plan_id: string; used_bytes: number; storage_bytes: number } | null>(null);
   const [myName, setMyName] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -50,6 +54,7 @@ export default function FamilyScreen() {
         setMembers(data as Member[]);
         setMyName((data as Member[]).find((m) => m.user_id === me)?.profiles?.display_name ?? '');
       });
+    supabase.rpc('family_usage', { fid: baby.family_id }).then(({ data }) => setUsage(data?.[0] ?? null));
   }, [baby.family_id, me]);
 
   // Tabs stay mounted; refresh whenever the tab is shown (someone may have joined).
@@ -205,6 +210,11 @@ export default function FamilyScreen() {
       <Card>
         <Text variant="label">{baby.family_name}</Text>
         <Text color="textSecondary">Private by default. Only people you invite can see {baby.name}&apos;s journal.</Text>
+        {usage && (
+          <Text variant="caption" color="textSecondary">
+            {PLAN_LABEL[usage.plan_id] ?? usage.plan_id} plan · {formatBytes(usage.used_bytes)} of {formatBytes(usage.storage_bytes)} used
+          </Text>
+        )}
       </Card>
 
       <Card>

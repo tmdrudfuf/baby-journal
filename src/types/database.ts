@@ -86,6 +86,31 @@ isOneToOne: false
       referencedColumns: ["id","family_id"]
     }
                   ]
+                },"entitlements": {
+                  Row: {
+                    "expires_at": string | null,"family_id": string,"plan_id": string,"source": string,"updated_at": string
+                  }
+                  Insert: {
+                    "expires_at"?: string | null,"family_id": string,"plan_id": string,"source"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "expires_at"?: string | null,"family_id"?: string,"plan_id"?: string,"source"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "entitlements_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: true
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "entitlements_plan_id_fkey"
+      columns: ["plan_id"]
+isOneToOne: false
+      referencedRelation: "plans"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"families": {
                   Row: {
                     "created_at": string,"created_by": string | null,"id": string,"name": string
@@ -225,6 +250,19 @@ isOneToOne: false
       referencedColumns: ["id","family_id"]
     }
                   ]
+                },"plans": {
+                  Row: {
+                    "id": string,"max_members": number,"originals": boolean,"storage_bytes": number
+                  }
+                  Insert: {
+                    "id": string,"max_members": number,"originals"?: boolean,"storage_bytes": number
+                  }
+                  Update: {
+                    "id"?: string,"max_members"?: number,"originals"?: boolean,"storage_bytes"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"profiles": {
                   Row: {
                     "created_at": string,"display_name": string | null,"id": string
@@ -234,6 +272,19 @@ isOneToOne: false
                   }
                   Update: {
                     "created_at"?: string,"display_name"?: string | null,"id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"rate_limits": {
+                  Row: {
+                    "bucket": string,"hits": number,"user_id": string,"window_start": string
+                  }
+                  Insert: {
+                    "bucket": string,"hits"?: number,"user_id": string,"window_start": string
+                  }
+                  Update: {
+                    "bucket"?: string,"hits"?: number,"user_id"?: string,"window_start"?: string
                   }
                   Relationships: [
                     
@@ -300,8 +351,29 @@ isOneToOne: false
 "create_invitation":
 { Args: { "fid": string,"invite_role": Database["public"]['Enums']["family_role"],"ttl"?: string }; Returns: string
                            },
+"family_plan":
+{ Args: { "fid": string }; Returns: {
+              "id": string,
+"max_members": number,
+"originals": boolean,
+"storage_bytes": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "plans"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"family_usage":
+{ Args: { "fid": string }; Returns: {
+              "max_members": number,"members": number,"plan_id": string,"storage_bytes": number,"used_bytes": number
+            }[]
+                           },
 "has_family_role":
 { Args: { "fid": string,"min_role": Database["public"]['Enums']["family_role"] }; Returns: boolean
+                           },
+"hit_rate_limit":
+{ Args: { "bucket_name": string,"max_hits": number,"window_seconds": number }; Returns: boolean
                            }
           }
           Enums: {

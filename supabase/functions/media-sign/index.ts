@@ -63,6 +63,7 @@ const LIMITS: Record<string, [number, number]> = {
 };
 
 const EXPORT_TTL_SECONDS = 86_400;
+const MAX_VARIANT_BYTES = 5 * 1024 * 1024; // display variants are ~0.3 MB; headroom for quota checks
 const EXPORT_MAX_PHOTOS = 1000;
 
 // The gateway already verified the JWT signature; this only reads its role claim.
@@ -128,6 +129,10 @@ Deno.serve(async (req) => {
     if (!allowed) return json({ error: 'forbidden' }, 403);
     // family_id comes from the database, never the client, so keys can't land in another family's namespace.
     const { data: memory } = await db.from('memories').select('family_id').eq('id', body.memory_id).single();
+    // Refuse before signing so an over-quota photo never lands in R2 without a row (the DB trigger is the backstop).
+    const { data: usage } = await db.rpc('family_usage', { fid: memory!.family_id });
+    const u = usage?.[0];
+    if (u && u.used_bytes + MAX_VARIANT_BYTES > u.storage_bytes) return json({ error: 'storage quota exceeded' }, 403);
     let key: string;
     try {
       key = uploadKey({ ...(body as { variant: string; ext: string }), family_id: memory!.family_id, memory_id: body.memory_id });
