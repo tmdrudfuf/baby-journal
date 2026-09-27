@@ -20,7 +20,7 @@ Next: M1 — Magic Journal.
 - [ ] Staging Supabase project + R2 bucket (blocked on human accounts)
 
 ## Known issues
-- Local Docker Desktop daemon did not start on the dev machine; DB tests verified in CI only.
+- none (local Docker + Supabase verified 2026-09-26: 25/25 pgTAP, schema lint clean).
 - See docs/SECURITY.md "Known gaps".
 
 ## External dependencies
