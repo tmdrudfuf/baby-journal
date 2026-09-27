@@ -70,7 +70,7 @@ Not deployed.
 ## Latest test result
 2026-09-27: `npm run verify` ✅ (lint, typecheck, jest), pgTAP 67/67 ✅, staging smoke + family E2E + delete-account E2E ✅, CI ✅.
 
-## Latest build
+- EAS preview APK f21df4a (arm64, staging; Home photo strip): https://expo.dev/artifacts/eas/VyAHc_uV5DAmlY1aLYLncQ0uyEnotocKnxT02gR99T0.apk
 - EAS preview APK 2fa27d2 (arm64, staging; M2–M10; replaces d1034997, whose photo uploads staging now refuses): https://expo.dev/artifacts/eas/Q2WjmLmbDpyLpftJEXv5IMUdfxFd-ak_wYy0GfFVqrA.apk
 - Owner installed via computer → phone transfer (direct phone download stalled at 100%, likely Play Protect scan).
 
