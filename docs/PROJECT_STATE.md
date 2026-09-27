@@ -3,7 +3,8 @@
 _Last updated: 2026-09-26_
 
 ## Current milestone
-M1 — Magic Journal: code complete, emulator-verified against staging. Waiting on physical-device test (acceptance: "a real device can create a baby and permanently save/retrieve a photo memory").
+M1 — Magic Journal: code complete, emulator-verified against staging; waiting on physical-device test.
+M2 — AI Journal: built and deployed to staging; inactive until an Anthropic API key is set (falls back to no suggestions).
 
 ## Completed milestones
 - M0 — Foundation (closed 2026-09-26)
@@ -15,7 +16,9 @@ M1 — Magic Journal: code complete, emulator-verified against staging. Waiting 
 - [x] Home (day count, today, hero photo), Journal, memory detail (edit text, delete)
 - [x] Emulator E2E (release build, staging): sign-in → onboarding → camera photo → synced; offline capture survives kill/relaunch and syncs on reconnect; delete removes row + R2 objects
 - [x] EAS project linked; preview profile (APK) with staging env vars on EAS
-- [ ] Physical-device test by human (preview APK)
+- [ ] Physical-device test by human (preview APK: https://expo.dev/artifacts/eas/VOIahyJk_4jJdBgk9Dx-GaK5BXWdHbhjaK1y1iQCZFA.apk, M1 code)
+- [x] M2: provider abstraction, ai-journal function, milestones table, cost telemetry, daily cap, confirm/dismiss UI (emulator-verified with seeded suggestion)
+- [ ] M2: live AI run (needs ANTHROPIC_API_KEY on staging)
 - [ ] Growth (M4) and Family invites (M3) tabs are placeholders
 
 ## Known issues
@@ -31,26 +34,27 @@ M1 — Magic Journal: code complete, emulator-verified against staging. Waiting 
 
 ## Required human actions
 1. Install the preview APK on an Android phone and run the M1 device checklist.
-2. Decide: staging email confirmation on/off (see Known issues).
-3. Decide repo visibility: `tmdrudfuf/baby-journal` is PUBLIC (secret scanning + push protection ON).
-4. Confirm Android application ID `com.tmdrudfuf.babyjournal` (permanent after first Play upload).
+2. Anthropic API key → `npx supabase secrets set --project-ref stdlwvahmexetlrrzpld ANTHROPIC_API_KEY=...` (model via AI_JOURNAL_MODEL, default claude-opus-5).
+3. Decide: staging email confirmation on/off (see Known issues).
+4. Decide repo visibility: `tmdrudfuf/baby-journal` is PUBLIC (secret scanning + push protection ON).
+5. Confirm Android application ID `com.tmdrudfuf.babyjournal` (permanent after first Play upload).
 
 Done: Supabase, Cloudflare (wrangler), Expo (eas) logins — 2026-09-26.
 
 ## Staging status
-Supabase staging: migrations 20260926000000, 20260927000000 applied.
-Edge functions: `media-sign` (upload, batch download, purge) deployed. `npm run smoke:staging` passes (incl. delete + purge).
+Supabase staging: migrations 20260926000000, 20260927000000, 20260928000000 applied.
+Edge functions: `media-sign` (upload, batch download, purge) and `ai-journal` deployed. `npm run smoke:staging` passes (incl. delete + purge).
 Agent test account: credentials in local `.env` only (TEST_USER_EMAIL / TEST_USER_PASSWORD).
 
 ## Production status
 Not deployed.
 
 ## Latest test result
-2026-09-26: `npm run verify` ✅ (lint, typecheck, jest), pgTAP 29/29 ✅, staging smoke ✅, emulator E2E ✅.
+2026-09-26: `npm run verify` ✅ (lint, typecheck, jest), pgTAP 35/35 ✅, staging smoke ✅, emulator E2E ✅.
 
 ## Latest build
 - Local Android debug + release builds on emulator (`npx expo run:android [--variant release]`).
-- EAS preview APK build b17328a2-bf4b-42cc-8883-206593f74ac4.
+- EAS preview APK build b17328a2-bf4b-42cc-8883-206593f74ac4 (FINISHED; commit before M2 client).
 
 ## Important architectural decisions
 See docs/ARCHITECTURE.md. Highlights:
