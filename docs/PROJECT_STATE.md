@@ -1,6 +1,6 @@
 # PROJECT STATE
 
-_Last updated: 2026-09-27_
+_Last updated: 2026-09-27 (evening)_
 
 ## Current milestone
 Milestones 1–5, 7 built and emulator-verified against staging; M2 (AI) waits for an API key; M8 has plans/quotas but no billing; M9/M10 partly prepared.
@@ -70,8 +70,8 @@ Not deployed.
 2026-09-27: `npm run verify` ✅ (lint, typecheck, jest), pgTAP 67/67 ✅, staging smoke + family E2E + delete-account E2E ✅, CI ✅.
 
 ## Latest build
-- EAS preview APK 7ade66b5-5b3e-413b-b525-9995f17bd4e7: https://expo.dev/artifacts/eas/FLE9aNYlCd5Q8knby4GeLB1m8rsIUMaNCiXM_ly6ooo.apk
-  (includes M1–M5, M7, privacy controls, new icon; launch-tested on emulator: fresh install, sign-in, Quick Log). Later commits add only the plan/storage line and server-side changes.
+- EAS preview APK 85cea2f6-049a-4134-89df-a9acecbac65c: https://expo.dev/artifacts/eas/FfsMsrtopLRziZqI_ga_2aOrElEM72RbvZ-d1A1QmzE.apk
+  (everything up to analytics + first-year PDF; launch-tested on emulator: fresh install, sign-in, Quick Log, First year).
 
 ## Important architectural decisions
 See docs/ARCHITECTURE.md, DATABASE.md, SECURITY.md, PRIVACY.md, COST_MODEL.md. Highlights:
