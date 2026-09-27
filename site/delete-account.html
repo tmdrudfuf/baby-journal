@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Baby Journal · Delete account</title><link rel="stylesheet" href="style.css"></head>
+<body><main>
+<h1>Delete your Baby Journal account</h1>
+<div class="card">
+  <p><strong>What is deleted:</strong> your login, your profile, and every family you alone own — with all of its memories, photos, logs and comments.</p>
+  <p><strong>What stays:</strong> in families that have another owner, you simply leave; memories you added there stay with that family without your name.</p>
+  <p class="muted">Deletion is immediate and permanent. Photos are removed from storage right away. You can also do this in the app: Family → Privacy → Delete my account.</p>
+</div>
+<form id="f">
+  <label for="email">Email</label><input id="email" type="email" autocomplete="email" required>
+  <label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required>
+  <label><input id="confirm" type="checkbox" required style="width:auto;min-height:auto"> I understand this cannot be undone</label>
+  <button class="danger" id="go" type="submit">Delete my account permanently</button>
+</form>
+<p id="msg" class="muted" role="status"></p>
+<p class="muted">Can't sign in? Contact [contact email] from your account email and we will delete it for you.</p>
+</main>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const supabase = createClient('https://stdlwvahmexetlrrzpld.supabase.co', 'sb_publishable_e7scWeN52TE8WNaS-B7NeA_GGnW2aYT'); // gitleaks:allow (publishable key, public by design)
+const msg = document.getElementById('msg');
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const go = document.getElementById('go');
+  go.disabled = true;
+  msg.textContent = 'Signing in…';
+  const { error } = await supabase.auth.signInWithPassword({ email: email.value.trim(), password: password.value });
+  if (error) { msg.textContent = 'Sign-in failed: ' + error.message; go.disabled = false; return; }
+  msg.textContent = 'Deleting…';
+  const { data, error: e2 } = await supabase.functions.invoke('media-sign', { body: { action: 'delete_account' } });
+  if (e2 || !data?.deleted) { msg.textContent = 'Could not delete the account. Please try again or contact us.'; go.disabled = false; return; }
+  await supabase.auth.signOut({ scope: 'local' });
+  document.getElementById('f').remove();
+  msg.textContent = 'Your account and data have been deleted.';
+});
+</script>
+</body></html>
