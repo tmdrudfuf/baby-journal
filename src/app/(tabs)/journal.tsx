@@ -66,6 +66,17 @@ export default function JournalScreen() {
                   Monthly memories
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm, paddingVertical: Spacing.sm }}>
+                  {baby.birth_date && (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${baby.name}'s first year`}
+                      onPress={() => router.push('/year/1')}
+                      style={{ backgroundColor: theme.primary, borderRadius: Radius.pill, paddingHorizontal: Spacing.lg, minHeight: 48, justifyContent: 'center' }}>
+                      <Text variant="label" color="onPrimary">
+                        ★ First year
+                      </Text>
+                    </Pressable>
+                  )}
                   {months.map((key) => (
                     <Pressable
                       key={key}

@@ -16,7 +16,7 @@ let queue: { id: string; resolve: (url: Signed) => void }[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
 
 // Batches all thumbnails requested in the same tick into one media-sign call.
-function signedUrl(assetId: string): Promise<Signed> {
+export function signedUrl(assetId: string): Promise<Signed> {
   const hit = cache.get(assetId);
   if (hit && hit.expires > Date.now()) return Promise.resolve(hit.url);
   return new Promise((resolve) => {

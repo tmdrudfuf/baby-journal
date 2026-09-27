@@ -17,7 +17,7 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 | M6 AI Memory | Not started (needs AI key + embeddings provider decision) |
 | M7 Monthly Memories | Highlights + slideshow done; share/export of a month later |
 | M8 Monetization | Plans, entitlements, storage quota, member limits done; Google Play Billing not started (needs Play Console) |
-| M9 Yearly Story | Not started; full data export (zip) done |
+| M9 Yearly Story | "First year" story (milestones, one highlight per month of life, totals) + print-ready A5 PDF via share sheet; full data export (zip parts) done |
 | M10 Launch hardening | Privacy controls, account deletion (app + web page), rate limits, cost model, Data Safety + listing drafts done; monitoring/analytics/store assets pending |
 
 ## Completed milestones
@@ -29,6 +29,7 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 - [ ] Owner decisions: staging email confirmation, repo visibility, Android app ID, contact email, GitHub Pages for `site/`
 - [ ] Google Play Console account (billing, internal testing track)
 - [ ] Crash monitoring + analytics provider accounts (Sentry / PostHog or similar)
+- [x] Invite links (babyjournal://join), export parts (50 photos), scheduled R2 sweep (pg_cron), first-year PDF
 
 ## Known issues
 - One family per user: the app shows the oldest baby across the user's families; no family switcher. Invitees must join (not create) on first launch.
