@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { AppState } from 'react-native';
 
 import * as local from '@/lib/local-db';
-import { deleteAllLocalFiles } from '@/lib/media';
+import { deleteAllLocalFiles, deleteLocalFiles } from '@/lib/media';
 import { supabase } from '@/lib/supabase';
 import { syncNow } from '@/lib/sync';
 
@@ -82,6 +82,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const row = babies.data[0];
       const role = members.data.find((m) => m.family_id === row?.family_id)?.role;
       if (!row || !role) {
+        // Removed from the family (or never joined): drop what this device held for it (§37).
+        if (readCache(userId)) local.wipeSynced().forEach(deleteLocalFiles);
         localStorage.removeItem(`${CACHE_KEY}:${userId}`);
         return setRemote({ userId, baby: null });
       }

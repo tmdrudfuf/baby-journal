@@ -26,6 +26,7 @@ M4 — Tracker: built, deployed, emulator-verified (feed/diaper/sleep/growth qui
 - [x] M4: tracker_events (local-first, 30-day pull, realtime), Quick Log on Capture (one-tap diaper/breastfeed/solid, bottle ml, sleep start/wake, growth measurements), Growth tab (today summary, 7-day history, long-press delete), Home TODAY merges memories + logs
 
 ## Known issues
+- One family per user: the app shows the oldest baby across the user's families; no family switcher. Invitees must join (not create) on first launch.
 - React Compiler turns `x!.prop` in components into render-time reads (crashed QuickLog); lint now forbids non-null assertions in src/**/*.tsx.
 - Staging requires email confirmation for sign-up (Supabase default). Confirmation mail links point at `http://localhost:3000` but still confirm the account. Needs a decision: turn off "Confirm email" for staging, or add custom SMTP + deep link before launch.
 - Invites are shared as a code (no deep link yet). Comments/hearts/milestone decisions are online-only.

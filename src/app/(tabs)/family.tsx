@@ -4,6 +4,7 @@ import { Alert, Share, View } from 'react-native';
 
 import { Button, Card, Field, Screen, Text } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
+import { failedCount } from '@/lib/local-db';
 import { supabase } from '@/lib/supabase';
 import { atLeast, useApp, useBaby, type Role } from '@/state/app';
 
@@ -90,7 +91,20 @@ export default function FamilyScreen() {
     if (m.user_id === me) refresh();
   }
 
-  async function onSignOut() {
+  function onSignOut() {
+    const failed = failedCount();
+    if (!failed) return doSignOut();
+    Alert.alert(
+      'Some items could not upload',
+      `${failed} ${failed === 1 ? 'item' : 'items'} could not be uploaded and will be removed from this phone when you sign out.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign out', style: 'destructive', onPress: doSignOut },
+      ],
+    );
+  }
+
+  async function doSignOut() {
     setBusy(true);
     try {
       await signOut();

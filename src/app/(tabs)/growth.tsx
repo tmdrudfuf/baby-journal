@@ -82,7 +82,7 @@ export default function GrowthScreen() {
               <Text color="textSecondary">{formatTime(e.started_at)}</Text>
               <View style={{ flex: 1 }}>
                 <Text>{describe(e, now)}</Text>
-                {e.status !== 'synced' && <SyncBadge memory={{ status: e.status, attempts: e.attempts }} />}
+                {e.status !== 'synced' && <SyncBadge memory={{ status: e.status, attempts: e.attempts, last_error: e.last_error }} />}
               </View>
             </Pressable>
           ))}

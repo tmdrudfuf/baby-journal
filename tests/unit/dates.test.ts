@@ -1,5 +1,5 @@
 import { dayNumber, greeting, localDayKey, parseLocalDate } from '@/lib/dates';
-import { isDue, retryDelayMs } from '@/lib/sync-policy';
+import { isDue, isPermanent, PermanentError, retryDelayMs } from '@/lib/sync-policy';
 
 test('birth day is day 1, next day is day 2', () => {
   expect(dayNumber('2026-03-26', new Date(2026, 2, 26, 0, 1))).toBe(1);
@@ -29,4 +29,15 @@ test('retry backoff grows and caps at 30 minutes', () => {
   expect(retryDelayMs(50)).toBe(30 * 60_000);
   expect(isDue(1000, 999)).toBe(false);
   expect(isDue(1000, 999, true)).toBe(true);
+});
+
+test('permanent vs retryable sync errors', () => {
+  expect(isPermanent({ code: '42501', message: 'row-level security' })).toBe(true);
+  expect(isPermanent({ code: '23503' })).toBe(true);
+  expect(isPermanent(new PermanentError('deleted elsewhere'))).toBe(true);
+  expect(isPermanent({ context: { status: 403 } })).toBe(true);
+  expect(isPermanent({ context: { status: 401 } })).toBe(false);
+  expect(isPermanent({ context: { status: 503 } })).toBe(false);
+  expect(isPermanent(new TypeError('Network request failed'))).toBe(false);
+  expect(isPermanent({ code: '40001' })).toBe(false);
 });

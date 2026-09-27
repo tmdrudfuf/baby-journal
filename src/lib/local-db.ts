@@ -4,7 +4,8 @@ import { useSyncExternalStore } from 'react';
 
 import type { EventKind } from '@/lib/tracker';
 
-export type SyncStatus = 'pending' | 'synced' | 'deleting';
+// failed = permanent error (e.g. no longer allowed); kept on the device, never retried.
+export type SyncStatus = 'pending' | 'synced' | 'deleting' | 'failed';
 
 export type LocalMemory = {
   id: string;
@@ -23,6 +24,7 @@ export type LocalMemory = {
   attempts: number;
   next_attempt_at: number;
   last_error: string | null;
+  server_seen: number;
   story_text: string | null; // AI suggestion; raw_text is never changed by AI
   milestone_candidate: number; // 0/1 (SQLite)
   milestone_title: string | null;
@@ -76,6 +78,11 @@ const LOCAL_MIGRATIONS = [
      last_error text
    );
    create index tracker_baby_time on tracker_events (baby_id, started_at desc);`,
+  // server_seen: the server has had this row, so a missing row later means it was deleted there.
+  `alter table memories add column server_seen integer not null default 0;
+   alter table tracker_events add column server_seen integer not null default 0;
+   update memories set server_seen = 1 where status = 'synced';
+   update tracker_events set server_seen = 1 where status = 'synced';`,
 ];
 const localVersion = db.getFirstSync<{ user_version: number }>('pragma user_version')?.user_version ?? 0;
 LOCAL_MIGRATIONS.slice(localVersion).forEach((sql, i) => {
@@ -142,17 +149,28 @@ export function removeLocal(id: string) {
 }
 
 export function queued(): LocalMemory[] {
-  return db.getAllSync<LocalMemory>(`select * from memories where status != 'synced' order by occurred_at`);
+  return db.getAllSync<LocalMemory>(`select * from memories where status in ('pending', 'deleting') order by occurred_at`);
 }
 
 export function pendingCount(): number {
-  const n = (table: string) => db.getFirstSync<{ n: number }>(`select count(*) as n from ${table} where status != 'synced'`)?.n ?? 0;
+  return count('pending', 'deleting');
+}
+
+// Items that can never upload (kept on the device until sign-out).
+export function failedCount(): number {
+  return count('failed');
+}
+
+function count(...statuses: SyncStatus[]): number {
+  const marks = statuses.map(() => '?').join(', ');
+  const n = (table: string) =>
+    db.getFirstSync<{ n: number }>(`select count(*) as n from ${table} where status in (${marks})`, ...statuses)?.n ?? 0;
   return n('memories') + n('tracker_events');
 }
 
 export function markSynced(id: string, assets: { display?: string; thumbnail?: string }) {
   db.runSync(
-    `update memories set status = 'synced', attempts = 0, next_attempt_at = 0, last_error = null,
+    `update memories set status = 'synced', server_seen = 1, attempts = 0, next_attempt_at = 0, last_error = null,
        display_asset_id = coalesce(?, display_asset_id), thumb_asset_id = coalesce(?, thumb_asset_id)
      where id = ? and status = 'pending'`,
     assets.display ?? null, assets.thumbnail ?? null, id,
@@ -160,10 +178,11 @@ export function markSynced(id: string, assets: { display?: string; thumbnail?: s
   changed();
 }
 
-export function markFailed(id: string, error: string, attempts: number, nextAttemptAt: number) {
+export function markFailed(id: string, error: string, attempts: number, nextAttemptAt: number, permanent = false) {
   db.runSync(
-    `update memories set attempts = ?, next_attempt_at = ?, last_error = ? where id = ?`,
-    attempts, nextAttemptAt, error.slice(0, 500), id,
+    `update memories set attempts = ?, next_attempt_at = ?, last_error = ?,
+       status = case when ? then 'failed' else status end where id = ?`,
+    attempts, nextAttemptAt, error.slice(0, 500), permanent ? 1 : 0, id,
   );
   changed();
 }
@@ -177,8 +196,8 @@ export function mergeRemote(babyId: string, rows: RemoteMemory[], complete: bool
   db.withTransactionSync(() => {
     for (const r of rows) {
       db.runSync(
-        `insert into memories (id, family_id, baby_id, author_id, occurred_at, type, raw_text, display_asset_id, thumb_asset_id, story_text, milestone_candidate, milestone_title, author_name, status)
-         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')
+        `insert into memories (id, family_id, baby_id, author_id, occurred_at, type, raw_text, display_asset_id, thumb_asset_id, story_text, milestone_candidate, milestone_title, author_name, status, server_seen)
+         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', 1)
          on conflict (id) do update set
            occurred_at = excluded.occurred_at, type = excluded.type, raw_text = excluded.raw_text,
            display_asset_id = excluded.display_asset_id, thumb_asset_id = excluded.thumb_asset_id,
@@ -202,6 +221,16 @@ export function mergeRemote(babyId: string, rows: RemoteMemory[], complete: bool
   });
   changed();
   return pruned;
+}
+
+// After losing access to a family: drop what came from the server (§37). Returns memory ids
+// so the caller can delete their files. Unsynced items stay and will surface as failed.
+export function wipeSynced(): string[] {
+  const ids = db.getAllSync<{ id: string }>(`select id from memories where status = 'synced'`).map((r) => r.id);
+  db.runSync(`delete from memories where status = 'synced'`);
+  db.runSync(`delete from tracker_events where status = 'synced'`);
+  changed();
+  return ids;
 }
 
 export function wipe() {
@@ -233,6 +262,7 @@ export type LocalEvent = {
   attempts: number;
   next_attempt_at: number;
   last_error: string | null;
+  server_seen: number;
 };
 export type NewEvent = Pick<LocalEvent, 'id' | 'family_id' | 'baby_id' | 'author_id' | 'kind' | 'started_at' | 'ended_at' | 'note'> & {
   data: Record<string, unknown>;
@@ -280,16 +310,20 @@ export function removeEventLocal(id: string) {
 }
 
 export function queuedEvents(): LocalEvent[] {
-  return db.getAllSync<LocalEvent>(`select * from tracker_events where status != 'synced' order by started_at`);
+  return db.getAllSync<LocalEvent>(`select * from tracker_events where status in ('pending', 'deleting') order by started_at`);
 }
 
 export function markEventSynced(id: string) {
-  db.runSync(`update tracker_events set status = 'synced', attempts = 0, next_attempt_at = 0, last_error = null where id = ? and status = 'pending'`, id);
+  db.runSync(`update tracker_events set status = 'synced', server_seen = 1, attempts = 0, next_attempt_at = 0, last_error = null where id = ? and status = 'pending'`, id);
   changed();
 }
 
-export function markEventFailed(id: string, error: string, attempts: number, nextAttemptAt: number) {
-  db.runSync(`update tracker_events set attempts = ?, next_attempt_at = ?, last_error = ? where id = ?`, attempts, nextAttemptAt, error.slice(0, 500), id);
+export function markEventFailed(id: string, error: string, attempts: number, nextAttemptAt: number, permanent = false) {
+  db.runSync(
+    `update tracker_events set attempts = ?, next_attempt_at = ?, last_error = ?,
+       status = case when ? then 'failed' else status end where id = ?`,
+    attempts, nextAttemptAt, error.slice(0, 500), permanent ? 1 : 0, id,
+  );
   changed();
 }
 
@@ -302,8 +336,8 @@ export function mergeRemoteEvents(babyId: string, rows: RemoteEvent[], sinceIso:
   db.withTransactionSync(() => {
     for (const r of rows) {
       db.runSync(
-        `insert into tracker_events (id, family_id, baby_id, author_id, kind, started_at, ended_at, data, note, status)
-         values (?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')
+        `insert into tracker_events (id, family_id, baby_id, author_id, kind, started_at, ended_at, data, note, status, server_seen)
+         values (?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', 1)
          on conflict (id) do update set kind = excluded.kind, started_at = excluded.started_at,
            ended_at = excluded.ended_at, data = excluded.data, note = excluded.note
          where tracker_events.status = 'synced'`,

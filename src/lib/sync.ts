@@ -5,7 +5,7 @@ import { localDayKey } from '@/lib/dates';
 import * as local from '@/lib/local-db';
 import { deleteLocalFiles } from '@/lib/media';
 import { supabase } from '@/lib/supabase';
-import { isDue, retryDelayMs } from '@/lib/sync-policy';
+import { isDue, isPermanent, PermanentError, retryDelayMs } from '@/lib/sync-policy';
 
 const PULL_LIMIT = 500;
 
@@ -38,8 +38,21 @@ async function uploadVariant(m: local.LocalMemory, variant: 'display' | 'thumbna
   if (rowError) throw rowError;
 }
 
+// Rows the server has seen are updated, never upserted: if another family member deleted
+// them meanwhile, an upsert would silently bring them back.
+async function write(table: 'memories' | 'tracker_events', serverSeen: number, row: { id: string } & Record<string, unknown>) {
+  if (!serverSeen) {
+    const { error } = await supabase.from(table).upsert(row as never);
+    if (error) throw error;
+    return;
+  }
+  const { data, error } = await supabase.from(table).update(row as never).eq('id', row.id).select('id');
+  if (error) throw error;
+  if (!data?.length) throw new PermanentError('Deleted by a family member');
+}
+
 async function push(m: local.LocalMemory) {
-  const { error } = await supabase.from('memories').upsert({
+  await write('memories', m.server_seen, {
     id: m.id,
     family_id: m.family_id,
     baby_id: m.baby_id,
@@ -48,7 +61,6 @@ async function push(m: local.LocalMemory) {
     type: m.type,
     raw_text: m.raw_text,
   });
-  if (error) throw error;
 
   if (m.photo_path && !m.display_asset_id) {
     await uploadVariant(m, 'thumbnail', m.thumb_path!);
@@ -106,7 +118,7 @@ async function pushEvent(e: local.LocalEvent) {
     if (error) throw error;
     return local.removeEventLocal(e.id);
   }
-  const { error } = await supabase.from('tracker_events').upsert({
+  await write('tracker_events', e.server_seen, {
     id: e.id,
     family_id: e.family_id,
     baby_id: e.baby_id,
@@ -117,7 +129,6 @@ async function pushEvent(e: local.LocalEvent) {
     data: JSON.parse(e.data),
     note: e.note,
   });
-  if (error) throw error;
   local.markEventSynced(e.id);
 }
 
@@ -128,7 +139,7 @@ async function pullEvents(babyId: string) {
     .from('tracker_events')
     .select('id, family_id, baby_id, author_id, kind, started_at, ended_at, data, note')
     .eq('baby_id', babyId)
-    .gte('started_at', since);
+    .or(`started_at.gte.${since},kind.eq.growth`); // all growth measurements: they chart the whole childhood
   if (error) throw error;
   local.mergeRemoteEvents(babyId, data as local.RemoteEvent[], since);
 }
@@ -148,7 +159,7 @@ export function syncNow(babyId: string | undefined, { force = false } = {}): Pro
           await (m.status === 'deleting' ? remove(m) : push(m));
         } catch (e) {
           const attempts = m.attempts + 1;
-          local.markFailed(m.id, e instanceof Error ? e.message : String(e), attempts, now + retryDelayMs(attempts));
+          local.markFailed(m.id, e instanceof Error ? e.message : String(e), attempts, now + retryDelayMs(attempts), isPermanent(e));
         }
       }
       for (const e of local.queuedEvents()) {
@@ -157,7 +168,7 @@ export function syncNow(babyId: string | undefined, { force = false } = {}): Pro
           await pushEvent(e);
         } catch (err) {
           const attempts = e.attempts + 1;
-          local.markEventFailed(e.id, err instanceof Error ? err.message : String(err), attempts, now + retryDelayMs(attempts));
+          local.markEventFailed(e.id, err instanceof Error ? err.message : String(err), attempts, now + retryDelayMs(attempts), isPermanent(err));
         }
       }
       if (babyId) {
