@@ -5,6 +5,7 @@ import { Alert, Linking, Share, View } from 'react-native';
 
 import { Button, Card, Field, Screen, Text } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
+import { track } from '@/lib/analytics';
 import { failedCount } from '@/lib/local-db';
 import { getReminder, setReminder, type Reminder } from '@/lib/reminders';
 import { supabase } from '@/lib/supabase';
@@ -71,6 +72,7 @@ export default function FamilyScreen() {
     setMessage(null);
     const { data: code, error } = await supabase.rpc('create_invitation', { fid: baby.family_id, invite_role: role });
     if (error) return setMessage('Could not create an invite. Check your connection.');
+    track('family_invited');
     await Share.share({
       message:
         `Join ${baby.name}'s private journal on Baby Journal as ${ROLE_LABEL[role].toLowerCase()}.\n\n` +

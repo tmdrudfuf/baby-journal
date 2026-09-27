@@ -74,7 +74,7 @@ export default function HomeScreen() {
       )}
       <Card>
         <Text variant="label">Today</Text>
-        {events.length > 0 && (
+        {(summary.feeds > 0 || summary.diapers > 0 || summary.sleepMinutes > 0 || summary.sleeping) && (
           <Text variant="caption" color="textSecondary">
             {summaryLine(summary)}
             {summary.sleeping ? ' · sleeping now' : ''}

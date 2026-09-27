@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 
 import { Button, Card, Field, Screen, Text } from '@/components/ui';
 import { formatDate, localDayKey } from '@/lib/dates';
+import { track } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 import { PENDING_INVITE_KEY, useApp } from '@/state/app';
 
@@ -52,6 +53,7 @@ export default function OnboardingScreen() {
         .from('babies')
         .insert({ family_id: familyId, name: babyName, birth_date: localDayKey(birth) });
       if (error) throw error;
+      track('onboarding_completed');
     });
 
   const join = () =>
@@ -60,6 +62,7 @@ export default function OnboardingScreen() {
       if (error?.message.includes('full')) throw new Error('This family has reached its member limit. Ask the owner to remove someone or upgrade.');
       if (error) throw new Error('That invite code is invalid or has expired. Ask for a new one.');
       localStorage.removeItem(PENDING_INVITE_KEY);
+      track('family_joined');
     });
 
   return (

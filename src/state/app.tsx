@@ -7,6 +7,7 @@ import { AppState } from 'react-native';
 import * as local from '@/lib/local-db';
 import { deleteAllLocalFiles, deleteLocalFiles } from '@/lib/media';
 import { getReminder, setReminder } from '@/lib/reminders';
+import { track } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 import { syncNow } from '@/lib/sync';
 
@@ -47,6 +48,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    track('app_opened');
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
     const { data } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
     return () => data.subscription.unsubscribe();

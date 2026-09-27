@@ -7,6 +7,7 @@ import { Button, Card, Field, Text } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { formatTime } from '@/lib/dates';
 import { endEvent, insertEvent, latestEvent, markEventDeleting, useLocal, type NewEvent } from '@/lib/local-db';
+import { track } from '@/lib/analytics';
 import { syncNow } from '@/lib/sync';
 import { describe, parseMeasure, type EventKind } from '@/lib/tracker';
 import { useApp, useBaby } from '@/state/app';
@@ -45,6 +46,7 @@ export function QuickLog() {
       note: null,
     };
     insertEvent(e);
+    track('quick_log', { kind });
     const text = kind === 'sleep' ? 'Sleep started' : describe({ ...e, data }, new Date());
     setLast({ id: e.id, text: `${text} at ${formatTime(now)}` });
     setPanel(null);

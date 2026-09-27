@@ -1,6 +1,7 @@
 // Mirrors the local store to Supabase + R2. Safe to call any time; every step is idempotent.
 import { File, UploadType } from 'expo-file-system';
 
+import { track } from '@/lib/analytics';
 import { localDayKey } from '@/lib/dates';
 import * as local from '@/lib/local-db';
 import { deleteLocalFiles } from '@/lib/media';
@@ -211,6 +212,7 @@ export async function confirmMilestone(m: local.LocalMemory, title: string) {
     occurred_on: localDayKey(new Date(m.occurred_at)),
   });
   if (error && error.code !== '23505') throw error; // already saved is fine
+  track('milestone_confirmed');
   await dismissMilestone(m);
   await syncNow(m.baby_id); // refresh the local milestone mirror
 }

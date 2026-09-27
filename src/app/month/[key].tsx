@@ -11,6 +11,7 @@ import { Text } from '@/components/ui';
 import { Palette, Spacing, TouchTarget } from '@/constants/theme';
 import { ageLabel, formatDate } from '@/lib/dates';
 import { listMemories, listMilestones, useLocal, type LocalMemory } from '@/lib/local-db';
+import { track } from '@/lib/analytics';
 import { monthKey, monthTitle, selectHighlights } from '@/lib/monthly';
 import { useBaby } from '@/state/app';
 
@@ -47,6 +48,7 @@ export default function MonthScreen() {
   const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
+    track('monthly_story_viewed');
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
   }, []);
 

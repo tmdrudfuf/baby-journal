@@ -3,12 +3,13 @@ import { File, Paths } from 'expo-file-system';
 import * as Print from 'expo-print';
 import { useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { MemoryImage, signedUrl } from '@/components/memory-image';
 import { Button, Card, Screen, Text } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
+import { track } from '@/lib/analytics';
 import { formatDate } from '@/lib/dates';
 import { listEvents, listMemories, listMilestones, useLocal, type LocalMemory } from '@/lib/local-db';
 import { plural } from '@/lib/tracker';
@@ -75,6 +76,7 @@ export default function YearScreen() {
   const events = useLocal(() => listEvents(baby.id, '1970-01-01'));
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  useEffect(() => track('yearly_story_viewed', { year }), [year]);
 
   if (!baby.birth_date) {
     return (

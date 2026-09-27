@@ -7,6 +7,7 @@ import { MemoryImage } from '@/components/memory-image';
 import { QuickLog } from '@/components/quick-log';
 import { Button, Field, Screen, Text } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
+import { track } from '@/lib/analytics';
 import { insertMemory } from '@/lib/local-db';
 import { choosePhoto, recoverPendingPhoto, storePhoto, takePhoto, type PickedPhoto } from '@/lib/media';
 import { syncNow } from '@/lib/sync';
@@ -23,6 +24,7 @@ export default function CaptureScreen() {
 
   // Android can kill the app while the camera is open; recover that photo.
   useEffect(() => {
+    track('capture_opened');
     recoverPendingPhoto()
       .then((p) => {
         if (p) {
@@ -62,6 +64,8 @@ export default function CaptureScreen() {
         raw_text: text.trim() || null,
         ...files,
       });
+      track('memory_created', { has_photo: !!photo, has_text: !!text.trim() });
+      if (photo) track('photo_added');
       setPhoto(null);
       setCapturedAt(null);
       setText('');
