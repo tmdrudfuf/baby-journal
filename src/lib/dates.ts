@@ -48,3 +48,16 @@ export function onThisDayLabel(iso: string, now: Date): string | null {
   if (months < 12) return months === 1 ? 'One month ago today' : `${months} months ago today`;
   return null;
 }
+
+// Human age on a given date: "3 weeks old" in the first month, then months, then years.
+export function ageLabel(birthDate: string, on: Date): string | null {
+  const days = dayNumber(birthDate, on) - 1;
+  if (days < 0) return null;
+  if (days < 7) return days <= 1 ? 'newborn' : `${days} days old`;
+  const birth = parseLocalDate(birthDate);
+  let months = (on.getFullYear() - birth.getFullYear()) * 12 + (on.getMonth() - birth.getMonth());
+  if (on.getDate() < birth.getDate()) months--;
+  if (months < 1) return `${Math.floor(days / 7)} ${Math.floor(days / 7) === 1 ? 'week' : 'weeks'} old`;
+  if (months < 24) return `${months} ${months === 1 ? 'month' : 'months'} old`;
+  return `${Math.floor(months / 12)} years old`;
+}

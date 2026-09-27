@@ -1,4 +1,4 @@
-import { dayNumber, greeting, localDayKey, onThisDayLabel, parseLocalDate } from '@/lib/dates';
+import { ageLabel, dayNumber, greeting, localDayKey, onThisDayLabel, parseLocalDate } from '@/lib/dates';
 import { isDue, isPermanent, PermanentError, retryDelayMs } from '@/lib/sync-policy';
 
 test('birth day is day 1, next day is day 2', () => {
@@ -53,4 +53,14 @@ test('on this day: yearly always, monthly only in the first year', () => {
   expect(onThisDayLabel(at(2027, 8, 26), now)).toBeNull(); // today itself
   expect(onThisDayLabel(at(2027, 8, 25), now)).toBeNull();
   expect(onThisDayLabel(at(2025, 11, 26), now)).toBeNull(); // 21 months: not a year boundary
+});
+
+test('age label by stage', () => {
+  expect(ageLabel('2026-09-01', new Date(2026, 8, 1))).toBe('newborn');
+  expect(ageLabel('2026-09-01', new Date(2026, 8, 4))).toBe('3 days old');
+  expect(ageLabel('2026-09-01', new Date(2026, 8, 30))).toBe('4 weeks old');
+  expect(ageLabel('2026-09-01', new Date(2026, 9, 1))).toBe('1 month old');
+  expect(ageLabel('2026-01-31', new Date(2026, 2, 30))).toBe('1 month old'); // not a full 2 months yet
+  expect(ageLabel('2024-09-01', new Date(2026, 8, 26))).toBe('2 years old');
+  expect(ageLabel('2026-10-01', new Date(2026, 8, 26))).toBeNull();
 });

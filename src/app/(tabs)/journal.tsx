@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, Pressable, RefreshControl } from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MemoryImage } from '@/components/memory-image';
@@ -10,6 +10,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDate, formatTime } from '@/lib/dates';
 import { listMemories, searchMemories, useLocal, type LocalMemory } from '@/lib/local-db';
+import { monthsWithMemories, monthTitle } from '@/lib/monthly';
 import { syncNow } from '@/lib/sync';
 import { useBaby } from '@/state/app';
 
@@ -37,6 +38,7 @@ export default function JournalScreen() {
   const [query, setQuery] = useState('');
   const searching = query.trim().length > 0;
   const memories = useLocal(() => (searching ? searchMemories(baby.id, query) : listMemories(baby.id)));
+  const months = searching ? [] : monthsWithMemories(memories.map((m) => m.occurred_at));
   const [refreshing, setRefreshing] = useState(false);
 
   async function refresh() {
@@ -58,6 +60,27 @@ export default function JournalScreen() {
           <>
             <Text variant="display">Journal</Text>
             <Field label="Search" value={query} onChangeText={setQuery} placeholder="First smile, bath, Grandma…" returnKeyType="search" />
+            {months.length > 0 && (
+              <>
+                <Text variant="label" style={{ marginTop: Spacing.md }}>
+                  Monthly memories
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm, paddingVertical: Spacing.sm }}>
+                  {months.map((key) => (
+                    <Pressable
+                      key={key}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Play ${monthTitle(key)} memories`}
+                      onPress={() => router.push(`/month/${key}`)}
+                      style={{ backgroundColor: theme.accent, borderRadius: Radius.pill, paddingHorizontal: Spacing.lg, minHeight: 48, justifyContent: 'center' }}>
+                      <Text variant="label" color="onAccent">
+                        ▶ {monthTitle(key)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </>
+            )}
           </>
         }
         ListEmptyComponent={

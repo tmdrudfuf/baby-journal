@@ -144,6 +144,13 @@ async function pullEvents(babyId: string) {
   local.mergeRemoteEvents(babyId, data as local.RemoteEvent[], since);
 }
 
+// Confirmed milestones are few; mirror them all.
+async function pullMilestones(babyId: string) {
+  const { data, error } = await supabase.from('milestones').select('id, baby_id, memory_id, title, occurred_on').eq('baby_id', babyId);
+  if (error) throw error;
+  local.replaceMilestones(babyId, data);
+}
+
 let running: Promise<void> | null = null;
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -175,6 +182,7 @@ export function syncNow(babyId: string | undefined, { force = false } = {}): Pro
         // Offline: keep showing local data.
         await pull(babyId).catch(() => undefined);
         await pullEvents(babyId).catch(() => undefined);
+        await pullMilestones(babyId).catch(() => undefined);
       }
     } finally {
       running = null;
@@ -204,6 +212,7 @@ export async function confirmMilestone(m: local.LocalMemory, title: string) {
   });
   if (error && error.code !== '23505') throw error; // already saved is fine
   await dismissMilestone(m);
+  await syncNow(m.baby_id); // refresh the local milestone mirror
 }
 
 export async function dismissMilestone(m: local.LocalMemory) {

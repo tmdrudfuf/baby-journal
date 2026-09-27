@@ -7,6 +7,8 @@ M1 — Magic Journal: code complete, emulator-verified against staging; waiting 
 M2 — AI Journal: built and deployed to staging; inactive until an Anthropic API key is set (falls back to no suggestions).
 M3 — Family: built, deployed, verified with two accounts (script + emulator). Needs a two-device human check to close.
 M4 — Tracker: built, deployed, emulator-verified (feed/diaper/sleep/growth quick log, Growth tab, Home summary).
+M5 — Retention: On This Day, search, opt-in daily reminder done; Daily Story waits for the AI key.
+M7 — Monthly Memories: automatic highlights (milestones first, one moment per day, even spread) + slideshow with pause and reduced-motion support; share/export later.
 
 ## Completed milestones
 - M0 — Foundation (closed 2026-09-26)

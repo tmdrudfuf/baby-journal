@@ -31,6 +31,7 @@ function RootStack() {
       <Stack.Protected guard={status === 'ready'}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="memory/[id]" options={{ headerShown: true, title: '', headerBackTitle: 'Back' }} />
+        <Stack.Screen name="month/[key]" options={{ animation: 'fade' }} />
       </Stack.Protected>
     </Stack>
   );

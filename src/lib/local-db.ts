@@ -83,6 +83,13 @@ const LOCAL_MIGRATIONS = [
    alter table tracker_events add column server_seen integer not null default 0;
    update memories set server_seen = 1 where status = 'synced';
    update tracker_events set server_seen = 1 where status = 'synced';`,
+  `create table milestones (
+     id text primary key,
+     baby_id text not null,
+     memory_id text,
+     title text not null,
+     occurred_on text not null
+   );`,
 ];
 const localVersion = db.getFirstSync<{ user_version: number }>('pragma user_version')?.user_version ?? 0;
 LOCAL_MIGRATIONS.slice(localVersion).forEach((sql, i) => {
@@ -247,6 +254,7 @@ export function wipeSynced(): string[] {
 export function wipe() {
   db.runSync(`delete from memories`);
   db.runSync(`delete from tracker_events`);
+  db.runSync(`delete from milestones`);
   changed();
 }
 
@@ -360,6 +368,24 @@ export function mergeRemoteEvents(babyId: string, rows: RemoteEvent[], sinceIso:
       `select id from tracker_events where baby_id = ? and status = 'synced' and started_at >= ?`, babyId, sinceIso,
     )) {
       if (!keep.has(id)) db.runSync(`delete from tracker_events where id = ?`, id);
+    }
+  });
+  changed();
+}
+
+// ---------------------------------------------------------------- confirmed milestones (read-only mirror)
+
+export type LocalMilestone = { id: string; baby_id: string; memory_id: string | null; title: string; occurred_on: string };
+
+export function listMilestones(babyId: string): LocalMilestone[] {
+  return db.getAllSync<LocalMilestone>(`select * from milestones where baby_id = ? order by occurred_on`, babyId);
+}
+
+export function replaceMilestones(babyId: string, rows: LocalMilestone[]) {
+  db.withTransactionSync(() => {
+    db.runSync(`delete from milestones where baby_id = ?`, babyId);
+    for (const r of rows) {
+      db.runSync(`insert into milestones (id, baby_id, memory_id, title, occurred_on) values (?, ?, ?, ?, ?)`, r.id, r.baby_id, r.memory_id, r.title, r.occurred_on);
     }
   });
   changed();
