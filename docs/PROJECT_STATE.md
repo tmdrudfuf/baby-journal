@@ -29,10 +29,11 @@ Next: M1 — Magic Journal.
 - Expo/EAS: not yet linked (needed for Android builds in M1).
 
 ## Required human actions
-1. Supabase account → create project `baby-journal-staging`, then run `npx supabase login` once.
-2. Cloudflare account → run `npx wrangler login` once (agent then creates buckets and R2 API token via CLI/dashboard).
-3. Expo account → run `npx eas-cli login` once (needed for first device build in M1).
-4. Decide repo visibility: `tmdrudfuf/baby-journal` is PUBLIC.
+Logins only; the agent creates projects, buckets and tokens via CLI afterwards.
+1. `npx supabase login` → agent runs `supabase projects create baby-journal-staging`.
+2. `npx wrangler login` → agent creates R2 buckets. Enabling R2 requires a payment method on the Cloudflare account (free tier: 10 GB).
+3. `npx eas-cli login` → needed for first Android device build (M1).
+4. Decide repo visibility: `tmdrudfuf/baby-journal` is PUBLIC (secret scanning + push protection are ON).
 5. Confirm Android application ID `com.tmdrudfuf.babyjournal` (permanent after first Play upload).
 
 ## Staging status
@@ -42,9 +43,10 @@ Not deployed.
 Not deployed.
 
 ## Latest test result
-2026-09-26 CI on main: app ✅ (lint, typecheck, 16 jest tests), database ✅ (24/24 pgTAP), functions ✅, secrets ✅.
+2026-09-26 CI on main: app ✅ (lint, typecheck, 16 jest tests), database ✅ (25/25 pgTAP), functions ✅, secrets ✅.
 
 ## Latest build
+Fresh clone → `npm run bootstrap && npm run verify` passes (M0 acceptance, minus Docker).
 Android JS bundle exports cleanly (`expo export --platform android`). No native/AAB build yet.
 
 ## Important architectural decisions
