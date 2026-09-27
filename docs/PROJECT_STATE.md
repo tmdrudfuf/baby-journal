@@ -3,7 +3,7 @@
 _Last updated: 2026-09-26_
 
 ## Current milestone
-M0 — Foundation: **code complete, CI green**. Remaining items need human accounts (see below).
+M0 — Foundation: code complete, CI green, staging DB live. Remaining: R2 bucket + media-sign deploy (blocked on R2 enablement).
 Next: M1 — Magic Journal.
 
 ## Completed milestones
@@ -17,27 +17,28 @@ Next: M1 — Magic Journal.
 - [x] R2 signed-URL edge function (`media-sign`)
 - [x] CI: verify (lint/typecheck/jest), supabase test db, deno check, gitleaks
 - [x] Bootstrap/verify scripts, ARCHITECTURE/DATABASE/SECURITY docs
-- [ ] Staging Supabase project + R2 bucket (blocked on human accounts)
+- [x] Staging Supabase project `baby-journal-staging` (ref `stdlwvahmexetlrrzpld`, ap-northeast-2), schema deployed
+- [ ] R2 buckets + R2 API token + deploy `media-sign` to staging (blocked: R2 not enabled)
 
 ## Known issues
 - none (local Docker + Supabase verified 2026-09-26: 25/25 pgTAP, schema lint clean).
 - See docs/SECURITY.md "Known gaps".
 
 ## External dependencies
-- Supabase: local via Docker; hosted staging not created.
+- Supabase: local via Docker; staging `stdlwvahmexetlrrzpld` (Seoul). Org `ehavtkfjgshwshafwmuz` also holds an unrelated project.
 - Cloudflare R2: no bucket yet.
 - Expo/EAS: not yet linked (needed for Android builds in M1).
 
 ## Required human actions
-Logins only; the agent creates projects, buckets and tokens via CLI afterwards.
-1. `npx supabase login` → agent runs `supabase projects create baby-journal-staging`.
-2. `npx wrangler login` → agent creates R2 buckets. Enabling R2 requires a payment method on the Cloudflare account (free tier: 10 GB).
-3. `npx eas-cli login` → needed for first Android device build (M1).
-4. Decide repo visibility: `tmdrudfuf/baby-journal` is PUBLIC (secret scanning + push protection are ON).
-5. Confirm Android application ID `com.tmdrudfuf.babyjournal` (permanent after first Play upload).
+1. Enable R2 in the Cloudflare dashboard (requires a payment method; free tier 10 GB).
+2. Decide repo visibility: `tmdrudfuf/baby-journal` is PUBLIC (secret scanning + push protection ON).
+3. Confirm Android application ID `com.tmdrudfuf.babyjournal` (permanent after first Play upload).
+
+Done: Supabase, Cloudflare (wrangler), Expo (eas) logins — 2026-09-26.
 
 ## Staging status
-Not deployed.
+Supabase staging: migration 20260926000000 applied, schema lint clean, anon smoke test denied (2026-09-26).
+Edge functions: not deployed (waiting on R2).
 
 ## Production status
 Not deployed.
