@@ -51,3 +51,10 @@ Deno.test('mock provider is deterministic and can fail on demand', async () => {
   assertEquals(mockCalls.at(-1)?.text, 'First smile at grandma today, so happy');
   await assertRejects(() => ai.journal({ ...input, text: `x ${MOCK_FAIL_MARKER}` }));
 });
+
+Deno.test('daily story sends only that day\'s notes and parses the story', async () => {
+  const { create, sent } = fake({ stop_reason: 'end_turn', content: [{ type: 'text', text: '{"story":"A full day."}' }] });
+  const { result } = await anthropicProvider('k', 'm', create).daily({ day: '2026-09-26', babyAgeDays: 184, notes: ['bath', 'first laugh'] });
+  assertEquals(result.story, 'A full day.');
+  assertEquals((sent[0] as { messages: { content: string }[] }).messages[0].content, "Date: 2026-09-26\nBaby's age: 184 days.\nNotes:\n- bath\n- first laugh");
+});

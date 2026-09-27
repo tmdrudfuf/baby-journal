@@ -85,7 +85,25 @@ const m5 = await memory('First bath with big sister tonight', '2026-09-27T07:00:
 await ai(owner, m5);
 ok((await row(m5)).ai_status === 'done', 'local-date request processed');
 
-// 7. Daily cap (limit 8 in .env.ai-test).
+// 7. Daily Story: needs 3 notes that day (local day), keeps the family's words, regenerates on request.
+const dayAt = (h) => `2026-09-20T${String(h).padStart(2, '0')}:00:00Z`; // 20:00Z..22:00Z = Sep 20 morning in Honolulu
+const daily = (u, extra = {}) => ai(u, undefined, { kind: 'daily', baby_id: baby.id, day: '2026-09-20', ...extra });
+const story = async () => (await admin(`/rest/v1/daily_stories?baby_id=eq.${baby.id}&day=eq.2026-09-20&select=*`)).data[0];
+await memory('Morning walk in the park', dayAt(20));
+await memory('Napped on dad for an hour', dayAt(21));
+ok((await daily(owner)).data.status === 'skipped', 'daily story waits for enough moments');
+await memory('Tried banana for the first time', dayAt(22));
+await memory('Late note from the previous evening', '2026-09-20T09:00:00Z'); // Sep 19 in Honolulu: excluded
+ok((await daily(owner)).data.status === 'done', 'daily story generated');
+let d = await story();
+ok(d.story_text.includes('Morning walk') && !d.story_text.includes('previous evening') && !d.saved, 'only that local day is used; suggestion not yet saved');
+ok((await daily(owner)).data.status === 'unchanged', 'existing daily story not regenerated implicitly');
+ok((await daily(viewer)).status === 403, 'viewer cannot generate a daily story');
+await owner.as(`/rest/v1/daily_stories?baby_id=eq.${baby.id}&day=eq.2026-09-20`, { method: 'PATCH', body: { story_text: 'Our day.', saved: true, edited: true } });
+ok((await viewer.as(`/rest/v1/daily_stories?baby_id=eq.${baby.id}&select=story_text`)).data[0]?.story_text === 'Our day.', 'family sees the saved story');
+ok((await daily(owner, { regenerate: true })).data.status === 'done' && !(await story()).edited, 'regenerate replaces the story');
+
+// 8. Daily cap (limit 8 in .env.ai-test).
 let last;
 for (let i = 0; i < 8; i++) last = await ai(owner, await memory(`Daily cap probe number ${i} with enough words`));
 ok(last.data.status === 'unavailable' && last.data.reason === 'daily limit', 'per-family daily cap enforced');

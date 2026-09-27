@@ -86,6 +86,25 @@ isOneToOne: false
       referencedColumns: ["id","family_id"]
     }
                   ]
+                },"daily_stories": {
+                  Row: {
+                    "baby_id": string,"day": string,"edited": boolean,"family_id": string,"saved": boolean,"story_text": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "baby_id": string,"day": string,"edited"?: boolean,"family_id": string,"saved"?: boolean,"story_text"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "baby_id"?: string,"day"?: string,"edited"?: boolean,"family_id"?: string,"saved"?: boolean,"story_text"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "daily_stories_baby_id_family_id_fkey"
+      columns: ["baby_id","family_id"]
+isOneToOne: false
+      referencedRelation: "babies"
+      referencedColumns: ["id","family_id"]
+    }
+                  ]
                 },"entitlements": {
                   Row: {
                     "expires_at": string | null,"family_id": string,"plan_id": string,"source": string,"updated_at": string

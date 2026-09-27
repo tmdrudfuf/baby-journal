@@ -11,9 +11,9 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 | M0 Foundation | Closed |
 | M1 Magic Journal | **Closed 2026-09-27** — owner phone test passed (capture, Quick Log, offline, delete, sign-out/in) |
 | M2 AI Journal | Done with mock provider (staging `AI_PROVIDER=mock`): suggestions, milestone confirm, edit/regenerate/discard, family on/off switch, cache, daily cap, usage telemetry, graceful fallback. `npm run e2e:ai-local` 20/20. Real Claude output unverified until `ANTHROPIC_API_KEY` is set |
-| M3 Family | Built, two-account verified (script + emulator); waiting on two-device check |
+| M3 Family | Done 2026-09-27: two independent accounts verified (script: 13 checks; emulator + second account live: invite join, realtime memory, heart, comment) |
 | M4 Tracker | Built, emulator-verified |
-| M5 Retention | On This Day, search, opt-in daily reminder done; Daily Story needs the AI key |
+| M5 Retention | Done 2026-09-27: On This Day, search, opt-in daily reminder, Daily Story (3+ notes; save/edit/regenerate/discard; emulator + `e2e:ai-local` 27/27 with mock) |
 | M6 AI Memory | Not started (needs AI key + embeddings provider decision) |
 | M7 Monthly Memories | Highlights + slideshow done; share/export of a month later |
 | M8 Monetization | Plans, entitlements, storage quota, member limits done; Google Play Billing not started (needs Play Console) |
@@ -47,7 +47,7 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 
 ## Required human actions
 1. Anthropic API key (needed only to verify real Claude output). Then: `npx supabase secrets set AI_PROVIDER=anthropic ANTHROPIC_API_KEY=... --project-ref stdlwvahmexetlrrzpld`.
-2. Optional: second person joins via invite (closes M3 two-device check).
+2. Optional: a real second phone joining via invite (M3 is already verified with two accounts).
 3. Later: Google Play Console account; paid Supabase plan for production; crash/analytics provider.
 
 Decisions (2026-09-27): repo stays public until Play launch; app ID `com.tmdrudfuf.babyjournal` confirmed; public contact tmdrudfuf@gmail.com; staging email confirmation OFF; site published: https://tmdrudfuf.github.io/baby-journal/ (privacy.html, delete-account.html).
@@ -55,7 +55,7 @@ Decisions (2026-09-27): repo stays public until Play launch; app ID `com.tmdrudf
 Done: Supabase, Cloudflare (wrangler), Expo (eas) logins; R2 enabled; R2 API token — 2026-09-26.
 
 ## Staging status
-Supabase staging migrations: 20260926000000 … 20261004000000 applied. Secret `AI_PROVIDER=mock` (deterministic suggestions, no cost).
+Supabase staging migrations: 20260926000000 … 20261005000000 applied. Secret `AI_PROVIDER=mock` (deterministic suggestions, no cost).
 Edge functions: `media-sign` (upload, batch download, purge, export, delete_account; CORS; rate limits) and `ai-journal` deployed.
 Scripts: `npm run smoke:staging` ✅, `npm run e2e:family` ✅ (13/13), `npm run e2e:delete-account` ✅ (7/7).
 Agent test account: credentials in local `.env` only (TEST_USER_EMAIL / TEST_USER_PASSWORD).

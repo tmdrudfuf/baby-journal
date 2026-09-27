@@ -1,13 +1,14 @@
 import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
+import { DailyStory } from '@/components/daily-story';
 import { MemoryImage } from '@/components/memory-image';
 import { Button, Card, Screen, Text } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { dayNumber, formatDate, formatTime, greeting, localDayKey, onThisDayLabel } from '@/lib/dates';
 import { listEvents, listMemories, useLocal } from '@/lib/local-db';
 import { describe, summarizeDay, summaryLine } from '@/lib/tracker';
-import { useBaby } from '@/state/app';
+import { atLeast, useBaby } from '@/state/app';
 
 export default function HomeScreen() {
   const baby = useBaby();
@@ -18,9 +19,9 @@ export default function HomeScreen() {
   const events = useLocal(() => listEvents(baby.id, dayStart)).map((e) => ({ ...e, data: JSON.parse(e.data) as Record<string, unknown> }));
   const summary = summarizeDay(events, now, now);
   // TODAY mixes memories and tracker entries, oldest first like a diary page (§11).
+  const todayMemories = memories.filter((m) => localDayKey(new Date(m.occurred_at)) === todayKey);
   const today = [
-    ...memories
-      .filter((m) => localDayKey(new Date(m.occurred_at)) === todayKey)
+    ...todayMemories
       .map((m) => ({ key: m.id, at: m.occurred_at, text: m.raw_text || 'Photo', memoryId: m.id as string | null })),
     ...events
       .filter((e) => localDayKey(new Date(e.started_at)) === todayKey)
@@ -98,6 +99,13 @@ export default function HomeScreen() {
           ))
         )}
       </Card>
+      <DailyStory
+        babyId={baby.id}
+        day={todayKey}
+        moments={today.length}
+        notes={todayMemories.filter((m) => (m.raw_text?.trim().length ?? 0) >= 3).length}
+        canEdit={atLeast(baby.role, 'contributor')}
+      />
       <Button label="Capture a moment" variant="accent" onPress={() => router.navigate('/capture')} />
     </Screen>
   );

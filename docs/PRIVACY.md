@@ -24,7 +24,8 @@ advertising IDs, analytics about journal content. There is no advertising and no
 - Private memories: only the author.
 - Photos are served through 5-minute signed URLs; there are no public links.
 - AI (when enabled): only the one note being processed, its date and the baby's age are sent to the
-  AI provider (Anthropic). No photos and no other history. The family owner can turn AI suggestions off
+  AI provider (Anthropic). No photos and no other history. A Daily Story, only when a family member asks
+  for one, sends that day's notes the same way (`daily_stories`). The family owner can turn AI suggestions off
   (`families.ai_enabled`); then nothing is sent.
 
 ## On the device

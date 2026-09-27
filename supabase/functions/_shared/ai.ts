@@ -14,10 +14,20 @@ export type JournalSuggestion = {
 
 export type Usage = { provider: string; model: string; inputTokens: number; outputTokens: number };
 
+export type DailyInput = {
+  day: string; // YYYY-MM-DD
+  babyAgeDays: number | null;
+  notes: string[]; // that day's notes, oldest first
+};
+
 export interface AiProvider {
   name: string;
   journal(input: JournalInput): Promise<{ result: JournalSuggestion; usage: Usage }>;
+  daily(input: DailyInput): Promise<{ result: { story: string | null }; usage: Usage }>;
 }
+
+// Daily Story (§14) needs a few moments to be worth writing.
+export const DAILY_MIN_NOTES = 3;
 
 export const JOURNAL_SYSTEM = [
   'You help parents keep a private baby journal.',
@@ -39,6 +49,25 @@ export const JOURNAL_SCHEMA = {
   required: ['story', 'milestone'],
   additionalProperties: false,
 } as const;
+
+export const DAILY_SYSTEM = [
+  'You help parents keep a private baby journal.',
+  "Given the notes a family wrote during one day, write a short story of that day (2-4 sentences) for the journal,",
+  'in the language the notes are written in. Use only facts from the notes; do not invent feelings, people or events.',
+  'Return story: null if the notes are only logs with nothing to tell. Never give medical advice or assessments.',
+].join('\n');
+
+export const DAILY_SCHEMA = {
+  type: 'object',
+  properties: { story: { type: ['string', 'null'] } },
+  required: ['story'],
+  additionalProperties: false,
+} as const;
+
+export function dailyPrompt(input: DailyInput): string {
+  const age = input.babyAgeDays !== null ? `Baby's age: ${input.babyAgeDays} days.\n` : '';
+  return `Date: ${input.day}\n${age}Notes:\n${input.notes.map((n) => `- ${n}`).join('\n')}`;
+}
 
 export function journalPrompt(input: JournalInput): string {
   const age = input.babyAgeDays !== null ? `Baby's age: ${input.babyAgeDays} days.\n` : '';

@@ -21,5 +21,12 @@ export function mockProvider(): AiProvider {
         usage: { provider: 'mock', model: 'mock-1', inputTokens: input.text.length, outputTokens: 20 },
       };
     },
+    async daily(input) {
+      if (input.notes.some((n) => n.includes(MOCK_FAIL_MARKER))) throw new Error('mock provider failure');
+      return {
+        result: { story: `A day to remember: ${input.notes.join(' Then, ')}` },
+        usage: { provider: 'mock', model: 'mock-1', inputTokens: input.notes.join('').length, outputTokens: 30 },
+      };
+    },
   };
 }
