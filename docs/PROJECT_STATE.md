@@ -9,7 +9,7 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 | Milestone | State |
 |---|---|
 | M0 Foundation | Closed |
-| M1 Magic Journal | Built, emulator-verified; waiting on phone test |
+| M1 Magic Journal | **Closed 2026-09-27** — owner phone test passed (capture, Quick Log, offline, delete, sign-out/in) |
 | M2 AI Journal | Built + deployed; inactive until `ANTHROPIC_API_KEY` is set (falls back to no suggestions) |
 | M3 Family | Built, two-account verified (script + emulator); waiting on two-device check |
 | M4 Tracker | Built, emulator-verified |
@@ -22,11 +22,11 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 
 ## Completed milestones
 - M0 — Foundation (closed 2026-09-26)
+- M1 — Magic Journal (closed 2026-09-27, physical device)
 
 ## Active tasks
-- [ ] Owner: phone test with the latest APK (checklist in the latest report)
 - [ ] Owner: Anthropic API key on staging
-- [ ] Owner decisions: staging email confirmation, repo visibility, Android app ID, contact email, GitHub Pages for `site/`
+- [ ] Owner decisions: staging email confirmation, publish `site/` on GitHub Pages
 - [ ] Google Play Console account (billing, internal testing track)
 - [ ] Crash monitoring + analytics provider accounts (Sentry / PostHog or similar)
 - [x] Invite links (babyjournal://join), export parts (50 photos), scheduled R2 sweep (pg_cron), first-year PDF
@@ -47,13 +47,13 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 - Expo/EAS: project `@tmdrudfuf/baby-journal` (b539689d-d022-4104-a66f-c140347e1740); Android keystore managed by EAS.
 
 ## Required human actions
-1. Install the latest preview APK on an Android phone and run the device checklist.
-2. Anthropic API key → `npx supabase secrets set --project-ref stdlwvahmexetlrrzpld ANTHROPIC_API_KEY=...` (model via `AI_JOURNAL_MODEL`, default claude-opus-5).
-3. Decide: staging email confirmation on/off.
-4. Decide repo visibility: `tmdrudfuf/baby-journal` is PUBLIC (secret scanning + push protection ON).
-5. Confirm Android application ID `com.tmdrudfuf.babyjournal` (permanent after first Play upload).
-6. Provide a public contact email and approve hosting `site/` (privacy policy, account deletion) e.g. on GitHub Pages.
-7. Later: Google Play Console developer account (identity verification + fee).
+1. Anthropic API key (optional; turns on AI suggestions).
+2. Decide: staging email confirmation on/off.
+3. Approve publishing `site/` (privacy policy + account deletion) on GitHub Pages.
+4. Optional: second person joins via invite (closes M3 two-device check).
+5. Later: Google Play Console account; paid Supabase plan for production; crash/analytics provider.
+
+Decisions (2026-09-27): repo stays public until Play launch; app ID `com.tmdrudfuf.babyjournal` confirmed; public contact tmdrudfuf@gmail.com.
 
 Done: Supabase, Cloudflare (wrangler), Expo (eas) logins; R2 enabled; R2 API token — 2026-09-26.
 
@@ -70,8 +70,8 @@ Not deployed.
 2026-09-27: `npm run verify` ✅ (lint, typecheck, jest), pgTAP 67/67 ✅, staging smoke + family E2E + delete-account E2E ✅, CI ✅.
 
 ## Latest build
-- EAS preview APK 85cea2f6-049a-4134-89df-a9acecbac65c: https://expo.dev/artifacts/eas/FfsMsrtopLRziZqI_ga_2aOrElEM72RbvZ-d1A1QmzE.apk
-  (everything up to analytics + first-year PDF; launch-tested on emulator: fresh install, sign-in, Quick Log, First year).
+- EAS preview APK d1034997 (arm64 only, 47 MB): https://expo.dev/artifacts/eas/DS9uTIGTgnr6Hl194wrhkib3seKpa_6_goUlsM0fD9o.apk
+- Owner installed via computer → phone transfer (direct phone download stalled at 100%, likely Play Protect scan).
 
 ## Important architectural decisions
 See docs/ARCHITECTURE.md, DATABASE.md, SECURITY.md, PRIVACY.md, COST_MODEL.md. Highlights:
