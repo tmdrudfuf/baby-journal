@@ -61,6 +61,15 @@ if (first.data.status === 'unavailable') {
   rows = await purchases();
   ok(refreshed >= 1 && new Date(rows.find((r) => r.purchase_token === t1).expires_at) > new Date(Date.now() + 20 * 86_400_000), 'renewal picked up by refresh');
 
+  // A pending payment that clears later is picked up by refresh and acknowledged.
+  const tp = `mock:pending:${tag(owner.id)}:${nonce()}`;
+  ok((await verify(owner, fid, 'plus_yearly', tp)).data.status === 'pending', 'pending payment recorded without granting anything');
+  await admin(`/rest/v1/purchases?purchase_token=eq.${encodeURIComponent(tp)}`, { method: 'PATCH', body: { purchase_token: tp.replace(':pending:', ':active:') } });
+  await admin('/functions/v1/billing', { method: 'POST', body: { action: 'refresh' } });
+  rows = await purchases();
+  const cleared = rows.find((r) => r.purchase_token === tp.replace(':pending:', ':active:'));
+  ok(cleared?.state === 'active' && cleared.acknowledged, 'cleared pending payment acknowledged by refresh');
+
   // Downgrade: everything already saved stays; only new growth is limited.
   await admin(`/rest/v1/purchases?family_id=eq.${fid}`, { method: 'PATCH', body: { state: 'expired', expires_at: new Date(Date.now() - 1000).toISOString() } });
   await admin('/rest/v1/rpc/sync_store_entitlement', { method: 'POST', body: { fid } });

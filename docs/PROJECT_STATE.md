@@ -58,6 +58,7 @@ Decisions (2026-09-27): repo stays public until Play launch; app ID `com.tmdrudf
 Done: Supabase, Cloudflare (wrangler), Expo (eas) logins; R2 enabled; R2 API token — 2026-09-26.
 
 ## Staging status
+Owner's staging family has a **manual Plus** entitlement (testing only, 2026-09-27) so Daily Story and Ask can be tried on the phone. Remove with: `delete from entitlements where source = 'manual'`.
 Supabase staging migrations: 20260926000000 … 20261009000000 applied. Secret `AI_PROVIDER=mock` (deterministic suggestions, no cost).
 Edge functions: `media-sign` (upload, batch download, purge, export, delete_account; CORS; rate limits) `ai-journal` (suggestions, Daily Story, embeddings, Ask) and `billing` (not configured on staging: purchases are refused until Play is set up) deployed.
 Scripts: `npm run smoke:staging` ✅, `npm run e2e:family` ✅ (13/13), `npm run e2e:delete-account` ✅, `npm run smoke:ai` ✅; local: `e2e:ai-local` 40/40, `e2e:billing-local` 14/14, pgTAP 87/87.

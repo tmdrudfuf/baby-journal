@@ -106,8 +106,8 @@ async function refresh(admin: SupabaseClient) {
     .from('purchases')
     .select('purchase_token, family_id, user_id, product_id')
     .eq('provider', store.name)
-    .in('state', ['active', 'grace', 'canceled', 'pending'])
-    .lt('expires_at', new Date(Date.now() + 3 * 86_400_000).toISOString())
+    // Near their end date, or still pending (no expiry yet): a cleared pending payment must be acknowledged.
+    .or(`state.eq.pending,and(state.in.(active,grace,canceled),expires_at.lt.${new Date(Date.now() + 3 * 86_400_000).toISOString()})`)
     .limit(50);
   let refreshed = 0;
   for (const r of due ?? []) {

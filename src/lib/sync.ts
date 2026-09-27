@@ -5,23 +5,12 @@ import { track } from '@/lib/analytics';
 import { localDayKey } from '@/lib/dates';
 import * as local from '@/lib/local-db';
 import { deleteLocalFiles } from '@/lib/media';
+import { mediaSign } from '@/lib/media-sign';
 import { reportError } from '@/lib/monitoring';
 import { supabase } from '@/lib/supabase';
 import { isDue, isPermanent, PermanentError, retryDelayMs } from '@/lib/sync-policy';
 
 const PULL_LIMIT = 500;
-
-// media-sign errors keep their HTTP status (for retry decisions) and carry the server's reason
-// (e.g. "storage quota exceeded", which the sync badge shows as storage full).
-async function mediaSign<T>(body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke('media-sign', { body });
-  if (error) {
-    const detail = await (error.context as Response | undefined)?.json?.().catch(() => null);
-    if (detail?.error) error.message = detail.error;
-    throw error;
-  }
-  return data as T;
-}
 
 async function uploadVariant(m: local.LocalMemory, variant: 'display' | 'thumbnail', path: string) {
   // Always re-sign: signed URLs expire in minutes and must never be queued.
