@@ -1,7 +1,7 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Share, View } from 'react-native';
+import { Alert, Linking, Share, View } from 'react-native';
 
 import { Button, Card, Field, Screen, Text } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
@@ -123,6 +123,19 @@ export default function FamilyScreen() {
       Alert.alert('Not yet', e instanceof Error ? e.message : String(e));
       setBusy(false);
     }
+  }
+
+  // Builds a zip (journal.json + readable index.html + photos) on the server; link valid for 24 h.
+  async function exportData() {
+    setBusy(true);
+    setMessage('Preparing your download… this can take a minute.');
+    const { data, error } = await supabase.functions.invoke('media-sign', {
+      body: { action: 'export', tz: Intl.DateTimeFormat().resolvedOptions().timeZone },
+    });
+    setBusy(false);
+    if (error || !data?.url) return setMessage('Could not prepare your data. Check your connection and try again.');
+    setMessage('Your download is ready. The link works for 24 hours.');
+    Linking.openURL(data.url);
   }
 
   function confirmDeleteFamily() {
@@ -262,6 +275,7 @@ export default function FamilyScreen() {
       <Card>
         <Text variant="label">Privacy</Text>
         <Text color="textSecondary">Your family&apos;s memories are private. They are never sold or used for ads.</Text>
+        <Button variant="ghost" label="Download my data" onPress={exportData} disabled={busy} />
         {isOwner && <Button variant="ghost" label="Delete this family" onPress={confirmDeleteFamily} disabled={busy} />}
         <Button variant="ghost" label="Delete my account" onPress={confirmDeleteAccount} disabled={busy} />
       </Card>

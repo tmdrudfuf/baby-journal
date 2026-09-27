@@ -5,8 +5,12 @@
 // POST { action: 'download', asset_ids: uuid[] }     -> { urls: { [asset_id]: url }, expires_in }
 // POST { action: 'purge' }                           -> { deleted }  (drains media_deletions)
 // POST { action: 'delete_account' }                  -> { deleted: true }  (§37; Play account-deletion requirement)
+// POST { action: 'export', tz? }                     -> { url, expires_in, photos }  (§37 data export, zip in R2 for 24 h)
 import { AwsClient } from 'npm:aws4fetch@1.0.20';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { strToU8, zipSync } from 'npm:fflate@0.8.2';
+
+import { exportHtml, localDay, type ExportBaby } from '../_shared/export-doc.ts';
 
 import { EXTENSIONS, MAX_BATCH, URL_TTL_SECONDS, isUuid, uploadKey } from './keys.ts';
 
@@ -24,9 +28,9 @@ const r2 = new AwsClient({
 });
 const bucketUrl = `https://${env('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com/${env('R2_BUCKET')}`;
 
-async function presign(method: 'GET' | 'PUT', key: string) {
+async function presign(method: 'GET' | 'PUT', key: string, ttl = URL_TTL_SECONDS) {
   const url = new URL(`${bucketUrl}/${key}`);
-  url.searchParams.set('X-Amz-Expires', String(URL_TTL_SECONDS));
+  url.searchParams.set('X-Amz-Expires', String(ttl));
   const signed = await r2.sign(new Request(url, { method }), { aws: { signQuery: true } });
   return signed.url;
 }
@@ -48,6 +52,9 @@ async function purgeQueue() {
     total += done.length;
   }
 }
+
+const EXPORT_TTL_SECONDS = 86_400;
+const EXPORT_MAX_PHOTOS = 1000;
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -104,6 +111,78 @@ Deno.serve(async (req) => {
     const { data: user } = await db.auth.getUser();
     if (!user.user) return json({ error: 'unauthorized' }, 401);
     return json({ deleted: await purgeQueue() });
+  }
+
+  if (body.action === 'export') {
+    const { data: auth } = await db.auth.getUser();
+    const me = auth.user?.id;
+    if (!me) return json({ error: 'unauthorized' }, 401);
+    // Everything is read with the caller's own permissions (RLS): an export can never include more
+    // than the app would show them.
+    const { data: babies } = await db.from('babies').select('id, name, birth_date, families(name)');
+    let tz = typeof body.tz === 'string' ? body.tz : 'UTC';
+    try {
+      localDay(new Date().toISOString(), tz);
+    } catch {
+      tz = 'UTC'; // unknown timezone name
+    }
+    const files: Record<string, Uint8Array> = {};
+    const out: ExportBaby[] = [];
+    let photos = 0;
+    for (const b of babies ?? []) {
+      const [mem, ms, logs] = await Promise.all([
+        db.from('memories')
+          .select('id, occurred_at, raw_text, story_text, author:profiles!memories_author_profile_fk(display_name), memory_assets(variant, object_key), comments(body, created_at, author:profiles!comments_author_profile_fk(display_name))')
+          .eq('baby_id', b.id)
+          .order('occurred_at'),
+        db.from('milestones').select('title, occurred_on').eq('baby_id', b.id).order('occurred_on'),
+        db.from('tracker_events').select('kind, started_at, ended_at, data').eq('baby_id', b.id).order('started_at'),
+      ]);
+      const memories = [];
+      for (const m of mem.data ?? []) {
+        const key = m.memory_assets.find((a: { variant: string }) => a.variant === 'display')?.object_key;
+        let photo: string | null = null;
+        // ponytail: whole zip is built in memory; stream it (or split per year) when archives get large.
+        if (key && photos < EXPORT_MAX_PHOTOS) {
+          const res = await r2.fetch(`${bucketUrl}/${key}`);
+          if (res.ok) {
+            photo = `photos/${localDay(m.occurred_at, tz)}-${m.id.slice(0, 8)}.jpg`;
+            files[photo] = new Uint8Array(await res.arrayBuffer());
+            photos++;
+          }
+        }
+        memories.push({
+          id: m.id,
+          occurred_at: m.occurred_at,
+          raw_text: m.raw_text,
+          story_text: m.story_text,
+          author: (m.author as unknown as { display_name: string | null } | null)?.display_name ?? null,
+          photo,
+          comments: ((m.comments ?? []) as unknown as { body: string; created_at: string; author: { display_name: string | null } | null }[]).map((c) => ({
+            author: c.author?.display_name ?? null,
+            body: c.body,
+            created_at: c.created_at,
+          })),
+        });
+      }
+      out.push({
+        name: b.name,
+        birth_date: b.birth_date,
+        family: (b.families as unknown as { name: string } | null)?.name ?? '',
+        memories,
+        milestones: ms.data ?? [],
+        logs: logs.data ?? [],
+      });
+    }
+    const exportedAt = new Date().toISOString();
+    files['journal.json'] = strToU8(JSON.stringify({ exported_at: exportedAt, babies: out }, null, 2));
+    files['index.html'] = strToU8(exportHtml(out, localDay(exportedAt, tz), tz));
+    const zip = zipSync(files, { level: 0 }); // photos are already compressed
+    const key = `exports/${me}/baby-journal-${exportedAt.slice(0, 10)}-${crypto.randomUUID().slice(0, 8)}.zip`;
+    const put = await r2.fetch(`${bucketUrl}/${key}`, { method: 'PUT', body: new Uint8Array(zip), headers: { 'Content-Type': 'application/zip' } });
+    if (!put.ok) return json({ error: 'could not store export' }, 502);
+    // R2 lifecycle rule deletes exports/ after one day.
+    return json({ url: await presign('GET', key, EXPORT_TTL_SECONDS), expires_in: EXPORT_TTL_SECONDS, photos });
   }
 
   if (body.action === 'delete_account') {
