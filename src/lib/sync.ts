@@ -5,38 +5,35 @@ import { track } from '@/lib/analytics';
 import { localDayKey } from '@/lib/dates';
 import * as local from '@/lib/local-db';
 import { deleteLocalFiles } from '@/lib/media';
+import { reportError } from '@/lib/monitoring';
 import { supabase } from '@/lib/supabase';
 import { isDue, isPermanent, PermanentError, retryDelayMs } from '@/lib/sync-policy';
 
 const PULL_LIMIT = 500;
 
+// media-sign errors keep their HTTP status (for retry decisions) and carry the server's reason
+// (e.g. "storage quota exceeded", which the sync badge shows as storage full).
+async function mediaSign<T>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke('media-sign', { body });
+  if (error) {
+    const detail = await (error.context as Response | undefined)?.json?.().catch(() => null);
+    if (detail?.error) error.message = detail.error;
+    throw error;
+  }
+  return data as T;
+}
+
 async function uploadVariant(m: local.LocalMemory, variant: 'display' | 'thumbnail', path: string) {
   // Always re-sign: signed URLs expire in minutes and must never be queued.
-  const { data, error } = await supabase.functions.invoke('media-sign', {
-    body: { action: 'upload', memory_id: m.id, variant, ext: 'jpg' },
-  });
-  if (error) throw error;
-  const file = new File(path);
-  const put = await file.upload(data.url, {
+  const data = await mediaSign<{ url: string; content_type: string }>({ action: 'upload', memory_id: m.id, variant, ext: 'jpg' });
+  const put = await new File(path).upload(data.url, {
     httpMethod: 'PUT',
     uploadType: UploadType.BINARY_CONTENT,
     headers: { 'Content-Type': data.content_type },
   });
   if (put.status < 200 || put.status >= 300) throw new Error(`upload failed (${put.status})`);
-  // Asset row only after the object exists; duplicates from retries are ignored.
-  const { error: rowError } = await supabase.from('memory_assets').upsert(
-    {
-      memory_id: m.id,
-      family_id: m.family_id,
-      object_key: data.object_key,
-      asset_type: 'photo',
-      mime_type: data.content_type,
-      variant,
-      bytes: file.size,
-    },
-    { onConflict: 'memory_id,variant', ignoreDuplicates: true },
-  );
-  if (rowError) throw rowError;
+  // The server measures the stored object and records the asset; retries are idempotent.
+  await mediaSign({ action: 'confirm', memory_id: m.id, variant, ext: 'jpg' });
 }
 
 // Rows the server has seen are updated, never upserted: if another family member deleted
@@ -167,6 +164,7 @@ export function syncNow(babyId: string | undefined, { force = false } = {}): Pro
           await (m.status === 'deleting' ? remove(m) : push(m));
         } catch (e) {
           const attempts = m.attempts + 1;
+          if (isPermanent(e)) reportError(e, 'upload failed permanently');
           local.markFailed(m.id, e instanceof Error ? e.message : String(e), attempts, now + retryDelayMs(attempts), isPermanent(e));
         }
       }
@@ -176,6 +174,7 @@ export function syncNow(babyId: string | undefined, { force = false } = {}): Pro
           await pushEvent(e);
         } catch (err) {
           const attempts = e.attempts + 1;
+          if (isPermanent(err)) reportError(err, 'log upload failed permanently');
           local.markEventFailed(e.id, err instanceof Error ? err.message : String(err), attempts, now + retryDelayMs(attempts), isPermanent(err));
         }
       }

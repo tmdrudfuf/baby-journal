@@ -23,7 +23,8 @@ they are legal declarations.**
 | Health and fitness → Health info (feeding, sleep, diaper, growth logs) | Yes | App functionality | Optional |
 | App activity → Other user-generated content (notes, comments) | Yes | App functionality | Optional |
 | Location | No (EXIF GPS stripped from uploads) | — | — |
-| Contacts, financial, messages, device IDs, ads IDs | No | — | — |
+| Financial info → Purchase history (subscription product, status, expiry, store purchase token) | Yes | App functionality (unlocking the family's plan) | Only if the owner subscribes |
+| Contacts, payment/card details, messages, device IDs, ads IDs | No (payment is handled entirely by Google Play) | — | — |
 
 Processed by AI (when enabled): the text of a single note, its date and the baby's age, sent to Anthropic to
 suggest a journal line (or, on request, that day's notes for a Daily Story, or a question plus up to 8 matching notes); not used for advertising. The family owner can turn this off.

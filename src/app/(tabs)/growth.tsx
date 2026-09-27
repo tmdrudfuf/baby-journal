@@ -2,7 +2,7 @@ import { Alert, Pressable, View } from 'react-native';
 
 import { SyncBadge } from '@/components/sync-badge';
 import { Card, Screen, Text } from '@/components/ui';
-import { Spacing } from '@/constants/theme';
+import { Spacing, TouchTarget } from '@/constants/theme';
 import { formatDate, formatTime, localDayKey } from '@/lib/dates';
 import { latestEvent, listEvents, markEventDeleting, useLocal, type LocalEvent } from '@/lib/local-db';
 import { syncNow } from '@/lib/sync';
@@ -73,9 +73,11 @@ export default function GrowthScreen() {
             <Pressable
               key={e.id}
               accessibilityRole="button"
-              accessibilityHint="Delete this entry"
+              accessibilityHint="Long press to delete this entry"
+              accessibilityActions={[{ name: 'longpress', label: 'Delete entry' }]}
+              onAccessibilityAction={() => remove(e)}
               onLongPress={() => remove(e)}
-              style={{ flexDirection: 'row', gap: Spacing.md, minHeight: 36, alignItems: 'center' }}>
+              style={{ flexDirection: 'row', gap: Spacing.md, minHeight: TouchTarget, alignItems: 'center' }}>
               <Text color="textSecondary">{formatTime(e.started_at)}</Text>
               <View style={{ flex: 1 }}>
                 <Text>{describe(e, now)}</Text>

@@ -60,6 +60,7 @@ async function purgeQueue() {
 // action -> [max requests, window seconds]
 const LIMITS: Record<string, [number, number]> = {
   upload: [600, 3600],
+  confirm: [600, 3600],
   download: [1200, 3600],
   purge: [120, 3600],
   export: [50, 86_400], // per part
@@ -154,13 +155,50 @@ Deno.serve(async (req) => {
     } catch (e) {
       return json({ error: (e as Error).message }, 400);
     }
-    // ponytail: presigned PUT cannot cap object size; enforce quotas server-side at asset-row insert (M8).
+    // A presigned PUT cannot cap the size; `confirm` measures the stored object before it counts.
     return json({
       url: await presign('PUT', key),
       object_key: key,
       content_type: EXTENSIONS[body.ext as string],
       expires_in: URL_TTL_SECONDS,
     });
+  }
+
+  // After the PUT: the server measures the object in R2 and writes the asset row itself, so the byte
+  // count used for quotas is never client-reported. Oversize objects are deleted.
+  if (body.action === 'confirm') {
+    if (!isUuid(body.memory_id)) return json({ error: 'invalid memory_id' }, 400);
+    const { data: allowed } = await db.rpc('can_edit_memory', { mid: body.memory_id });
+    if (!allowed) return json({ error: 'forbidden' }, 403);
+    const { data: memory } = await db.from('memories').select('family_id').eq('id', body.memory_id).single();
+    let key: string;
+    try {
+      key = uploadKey({ ...(body as { variant: string; ext: string }), family_id: memory!.family_id, memory_id: body.memory_id });
+    } catch (e) {
+      return json({ error: (e as Error).message }, 400);
+    }
+    const head = await r2.fetch(`${bucketUrl}/${key}`, { method: 'HEAD' });
+    if (head.status === 404) return json({ error: 'object not uploaded' }, 404);
+    if (!head.ok) return json({ error: 'storage unavailable' }, 503);
+    const bytes = Number(head.headers.get('content-length') ?? 'NaN');
+    if (!Number.isFinite(bytes) || bytes > MAX_VARIANT_BYTES) {
+      await r2.fetch(`${bucketUrl}/${key}`, { method: 'DELETE' });
+      return json({ error: 'file too large' }, 413);
+    }
+    const admin = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
+    const { error } = await admin.from('memory_assets').upsert(
+      {
+        memory_id: body.memory_id, family_id: memory!.family_id, object_key: key, asset_type: 'photo',
+        mime_type: EXTENSIONS[body.ext as string], variant: body.variant, bytes,
+      },
+      { onConflict: 'memory_id,variant', ignoreDuplicates: true },
+    );
+    // The quota trigger is the backstop: over quota -> remove the object so R2 never holds unaccounted data.
+    if (error) {
+      await r2.fetch(`${bucketUrl}/${key}`, { method: 'DELETE' });
+      return json({ error: error.code === '23514' ? 'storage quota exceeded' : 'could not save' }, error.code === '23514' ? 403 : 500);
+    }
+    return json({ bytes });
   }
 
   if (body.action === 'purge') {

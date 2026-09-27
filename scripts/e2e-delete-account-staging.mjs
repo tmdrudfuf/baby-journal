@@ -32,7 +32,8 @@ async function photoMemory(u, fid, babyId) {
   await u.as('/rest/v1/memories', { method: 'POST', body: { id: mid, family_id: fid, baby_id: babyId, author_id: u.id, raw_text: 'x' } });
   const up = (await u.as('/functions/v1/media-sign', { method: 'POST', body: { action: 'upload', memory_id: mid, variant: 'display', ext: 'jpg' } })).data;
   await fetch(up.url, { method: 'PUT', body: randomBytes(100), headers: { 'Content-Type': 'image/jpeg' } });
-  const [asset] = (await u.as('/rest/v1/memory_assets', { method: 'POST', body: { memory_id: mid, family_id: fid, object_key: up.object_key, asset_type: 'photo', mime_type: 'image/jpeg', variant: 'display', bytes: 100 } })).data;
+  await u.as('/functions/v1/media-sign', { method: 'POST', body: { action: 'confirm', memory_id: mid, variant: 'display', ext: 'jpg' } });
+  const [asset] = (await u.as(`/rest/v1/memory_assets?memory_id=eq.${mid}&select=id`)).data;
   return { mid, assetId: asset.id };
 }
 const signedStatus = async (u, assetId) => {

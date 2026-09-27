@@ -31,11 +31,15 @@
 ## Rate limits
 
 Per-user fixed windows in Postgres (`hit_rate_limit`): upload 600/h, download signing 1200/h, purge 120/h,
-export 5/day, account deletion 5/h, AI journal 120/h (plus a per-family daily AI cap). Exceeding returns 429,
+export 5/day, account deletion 5/h, upload confirm 600/h, AI (suggestions, Daily Story, Ask) 120/h (plus a
+per-family daily AI cap), billing verify 30/h. Exceeding returns 429,
 which the app treats as retryable. Non-authenticated callers get 401.
 
 ## Known gaps (tracked)
 
-- Presigned PUT cannot cap object size → quota enforcement at asset-row insert (M8).
-- Owner can demote/remove themselves leaving an ownerless family → guard in M3 (roles).
-- R2 object purge runs when a client calls `media-sign` purge after deletes; add a scheduled drain before launch.
+- Closed: object size is measured server-side (`media-sign` confirm, 5 MB/variant cap) and only the server
+  writes `memory_assets` rows, so quota counts cannot be under-reported (M10).
+- Closed: last-owner guard (M3); scheduled R2 purge every 15 min (pg_cron).
+- Open: an object uploaded with a presigned URL but never confirmed stays in R2 unaccounted (at most one
+  5-minute URL per request, rate-limited). Add an R2 lifecycle sweep of unreferenced keys before launch.
+- Open: Play real-time developer notifications (refunds/revocations are picked up by the 6-hourly refresh).

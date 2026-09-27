@@ -66,7 +66,8 @@ if (first.data.status === 'unavailable') {
   await admin('/rest/v1/rpc/sync_store_entitlement', { method: 'POST', body: { fid } });
   ok((await plan()) === 'free', 'lapsed subscription falls back to Free');
   ok((await carer.as(`/rest/v1/memories?id=eq.${memId}&select=raw_text`)).data[0]?.raw_text === 'kept forever', 'memories stay readable after downgrade');
-  const big = await owner.as('/rest/v1/memory_assets', {
+  // Asset rows are written by media-sign confirm (service role); the quota trigger binds it too.
+  const big = await admin('/rest/v1/memory_assets', {
     method: 'POST',
     body: { memory_id: memId, family_id: fid, variant: 'display', asset_type: 'photo', mime_type: 'image/jpeg', object_key: `families/${fid}/memories/${memId}/display.jpg`, bytes: 3 * 1024 ** 3 },
   });

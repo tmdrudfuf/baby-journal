@@ -59,6 +59,20 @@ The 20% paid conversion is a placeholder hypothesis; margins are dominated by AI
 - Unlimited storage is not justified yet; keep the configurable tiers (2 / 25 / 100 GB hypothesis, §31).
 - Guardrails in place: per-user rate limits, AI daily cap, 5-minute signed URLs, export links expire in 24 h.
 
+## Simulation (M10): `npm run cost:sim`
+
+AI journal suggestions (story + milestone detection) currently run for **Free families too**, because milestones
+are a free feature (§40) and come from the same call. With 20% paid at $4.99:
+
+| Families | Today (free gets AI journal on Opus 5) | Free AI journal on Haiku 4.5 | AI journal paid-only |
+|---|---|---|---|
+| 1,000 | infra ~$293, margin ~65% | ~$113, ~87% | ~$113, ~87% |
+| 100,000 | ~$26,800, ~68% | ~$8,800, ~90% | ~$8,800, ~90% |
+
+**Owner decision needed before launch:** either run the journal suggestion on a cheaper model
+(`AI_JOURNAL_MODEL=claude-haiku-4-5`, no code change), or make AI suggestions a Plus feature (keeps manual
+milestones free). Daily Story and Ask answers are already Plus-only; embeddings for search are free (edge runtime).
+
 ## To measure (once live)
 
 - `ai_usage`: cost per family per month (`sum(est_cost_usd)` by `family_id`).

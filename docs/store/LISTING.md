@@ -27,7 +27,17 @@ REDISCOVER
 • "On this day" brings back moments from a month or a year ago
 • Monthly memories: an automatic slideshow of each month's highlights
 • Milestones: first smile, first rollover, first steps — saved and celebrated
-• Search your memories
+• Search your memories — or just ask: "When did she first try banana?"
+
+A LITTLE HELP (OPTIONAL)
+• Suggested journal lines and milestone spotting from what you write — your own words always stay as written
+• Plus: a short story of your day, and answers from your journal that link back to the moments themselves
+• AI is optional and can be switched off for the whole family
+
+PLANS
+• Free: the full journal, photos, tracker, milestones and family sharing, with 2 GB of photo storage
+• Plus and Family: more storage and members, Daily Story and journal answers
+• If a subscription ends, nothing is deleted — you keep viewing and downloading everything
 
 PRIVATE BY DEFAULT
 • Only people you invite can see your baby's journal
@@ -44,6 +54,8 @@ tmdrudfuf@gmail.com
 https://tmdrudfuf.github.io/baby-journal/privacy.html
 
 ## Graphics checklist
-- App icon 512×512: generate from assets/source/render-icons.js
-- Feature graphic 1024×500: to design
-- Phone screenshots (min 2): Home, Journal, Capture + Quick log, Monthly memories, Family
+Drafts in `docs/store/assets/` (made from the emulator build):
+- `icon-512.png` (512×512) and `feature-graphic-1024x500.png`.
+- `screenshot-draft-{home,daily,memory,ask}.png` (1080×2160, Play allows at most 2:1). **Retake before
+  submission**: the AI text in them comes from the mock provider, and store screenshots must show real output.
+  Suggested set: Home, a memory with a milestone + suggestion, Daily Story, Ask your journal, Monthly memories, Plans.

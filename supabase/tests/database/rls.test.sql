@@ -1,6 +1,6 @@
 -- Security guarantees from masterplan §36. Run: npm run db:test
 begin;
-select plan(25);
+select plan(26);
 
 -- ---------------------------------------------------------------- fixtures (as postgres, RLS bypassed)
 -- a = owner of A, b = owner of B, v = viewer of A, r = caregiver of A (revoked later), i = invitee
@@ -63,6 +63,11 @@ select throws_ok(
   $$insert into public.memories (family_id, baby_id, author_id) values ('aaaaaaaa-0000-0000-0000-000000000000', 'bbbbbbbb-1111-0000-0000-000000000000', '00000000-0000-0000-0000-00000000000a')$$,
   '23503', null, 'A cannot attach memory to B baby');
 select throws_ok(
+  $$insert into public.memory_assets (memory_id, family_id, object_key, asset_type, mime_type, variant, bytes) values ('aaaaaaaa-2222-0000-0000-000000000000', 'aaaaaaaa-0000-0000-0000-000000000000', 'families/aaaaaaaa-0000-0000-0000-000000000000/memories/aaaaaaaa-2222-0000-0000-000000000000/display.jpg', 'photo', 'image/jpeg', 'display', 1)$$,
+  '42501', null, 'clients cannot register assets directly (media-sign confirm measures them)');
+-- Key namespacing is a table constraint, so it binds the server too.
+reset role;
+select throws_ok(
   $$insert into public.memory_assets (memory_id, family_id, object_key, asset_type, mime_type, variant) values ('aaaaaaaa-2222-0000-0000-000000000000', 'aaaaaaaa-0000-0000-0000-000000000000', 'families/bbbbbbbb-0000-0000-0000-000000000000/x.jpg', 'photo', 'image/jpeg', 'display')$$,
   '23514', null, 'asset key must be namespaced by its own family');
 select throws_ok(
@@ -70,7 +75,9 @@ select throws_ok(
   '23514', null, 'asset key must be namespaced by its own memory');
 select lives_ok(
   $$insert into public.memory_assets (memory_id, family_id, object_key, asset_type, mime_type, variant) values ('aaaaaaaa-2222-0000-0000-000000000000', 'aaaaaaaa-0000-0000-0000-000000000000', 'families/aaaaaaaa-0000-0000-0000-000000000000/memories/aaaaaaaa-2222-0000-0000-000000000000/display.jpg', 'photo', 'image/jpeg', 'display')$$,
-  'A can add asset to own memory');
+  'server can add an asset to the memory''s own namespace');
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
 
 -- ---------------------------------------------------------------- Viewer cannot write
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}', true);

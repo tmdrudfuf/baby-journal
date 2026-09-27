@@ -43,8 +43,24 @@ try {
   if (!put.ok) throw new Error(`R2 PUT ${put.status} ${await put.text()}`);
   console.log(`2. uploaded ${payload.length} bytes to ${up.object_key.replace(familyId, '<family>').replace(memoryId, '<memory>')}`);
 
-  const [asset] = await as('/rest/v1/memory_assets', { method: 'POST', headers: { Prefer: 'return=representation' },
-    body: { memory_id: memoryId, family_id: familyId, object_key: up.object_key, asset_type: 'photo', mime_type: up.content_type, variant: 'display', bytes: payload.length } });
+  // The server measures the object; a client-written asset row is refused.
+  let refused = false;
+  try {
+    await as('/rest/v1/memory_assets', { method: 'POST', body: { memory_id: memoryId, family_id: familyId, object_key: up.object_key, asset_type: 'photo', mime_type: up.content_type, variant: 'display', bytes: 1 } });
+  } catch { refused = true; }
+  if (!refused) throw new Error('client could write an asset row');
+  const confirmed = await as('/functions/v1/media-sign', { method: 'POST', body: { action: 'confirm', memory_id: memoryId, variant: 'display', ext: 'jpg' } });
+  if (confirmed.bytes !== payload.length) throw new Error(`confirm measured ${confirmed.bytes} bytes`);
+  console.log(`2b. server measured ${confirmed.bytes} bytes; client-written asset rows refused`);
+  const bigUp = await as('/functions/v1/media-sign', { method: 'POST', body: { action: 'upload', memory_id: memoryId, variant: 'thumbnail', ext: 'jpg' } });
+  await fetch(bigUp.url, { method: 'PUT', body: randomBytes(6 * 1024 * 1024), headers: { 'Content-Type': bigUp.content_type } });
+  let tooBig = false;
+  try {
+    await as('/functions/v1/media-sign', { method: 'POST', body: { action: 'confirm', memory_id: memoryId, variant: 'thumbnail', ext: 'jpg' } });
+  } catch (e) { tooBig = String(e.message).includes('413'); }
+  if (!tooBig) throw new Error('oversize object was accepted');
+  console.log('2c. oversize object rejected and removed');
+  const [asset] = await as(`/rest/v1/memory_assets?memory_id=eq.${memoryId}&select=id`);
   const down = await as('/functions/v1/media-sign', { method: 'POST', body: { action: 'download', asset_ids: [asset.id] } });
   const signedUrl = down.urls[asset.id];
   const got = Buffer.from(await (await fetch(signedUrl)).arrayBuffer());

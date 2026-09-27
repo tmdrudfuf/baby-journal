@@ -4,7 +4,7 @@ import { Pressable, View } from 'react-native';
 import { DailyStory } from '@/components/daily-story';
 import { MemoryImage } from '@/components/memory-image';
 import { Button, Card, Screen, Text } from '@/components/ui';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing, TouchTarget } from '@/constants/theme';
 import { dayNumber, formatDate, formatTime, greeting, localDayKey, onThisDayLabel } from '@/lib/dates';
 import { listEvents, listMemories, useLocal } from '@/lib/local-db';
 import { describe, summarizeDay, summaryLine } from '@/lib/tracker';
@@ -90,7 +90,7 @@ export default function HomeScreen() {
               accessibilityRole={item.memoryId ? 'button' : 'text'}
               disabled={!item.memoryId}
               onPress={() => item.memoryId && router.push(`/memory/${item.memoryId}`)}
-              style={{ flexDirection: 'row', gap: Spacing.md, minHeight: 32 }}>
+              style={{ flexDirection: 'row', gap: Spacing.md, minHeight: TouchTarget, alignItems: 'center' }}>
               <Text color="textSecondary">{formatTime(item.at)}</Text>
               <Text numberOfLines={1} style={{ flex: 1 }}>
                 {item.text}

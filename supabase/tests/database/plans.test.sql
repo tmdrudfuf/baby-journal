@@ -23,8 +23,11 @@ set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
 
 select is((select plan_id from public.family_usage('aaaaaaaa-0000-0000-0000-000000000000')), 'tiny', 'entitlement sets the plan');
+reset role; -- asset rows are written by media-sign (service role); the quota trigger applies to it
 select lives_ok($$insert into public.memory_assets (memory_id, family_id, object_key, asset_type, mime_type, variant, bytes) values ('aaaaaaaa-2222-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000000', 'families/aaaaaaaa-0000-0000-0000-000000000000/memories/aaaaaaaa-2222-0000-0000-000000000001/display.jpg', 'photo', 'image/jpeg', 'display', 800)$$, 'upload within quota');
 select throws_ok($$insert into public.memory_assets (memory_id, family_id, object_key, asset_type, mime_type, variant, bytes) values ('aaaaaaaa-2222-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000000', 'families/aaaaaaaa-0000-0000-0000-000000000000/memories/aaaaaaaa-2222-0000-0000-000000000002/display.jpg', 'photo', 'image/jpeg', 'display', 300)$$, '23514', 'storage quota exceeded', 'upload over quota refused');
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
 select is((select used_bytes from public.family_usage('aaaaaaaa-0000-0000-0000-000000000000')), 800::bigint, 'usage counts stored bytes');
 select throws_ok($$insert into public.entitlements (family_id, plan_id) values ('aaaaaaaa-0000-0000-0000-000000000000', 'family')$$, '42501', null, 'users cannot grant themselves a plan');
 

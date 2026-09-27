@@ -3,7 +3,7 @@
 _Last updated: 2026-09-27 (evening)_
 
 ## Current milestone
-Milestones 1–5, 7 built and emulator-verified against staging; M2 (AI) verified with the mock provider (real Claude output needs an API key); M8 has plans/quotas but no billing; M9/M10 partly prepared.
+All milestones M1–M10 are built. Verified on emulator + staging; AI runs on the mock provider (real Claude output needs an API key); subscriptions run on a mock store (real Google Play needs Play Console); launch builds need production infrastructure (not created yet).
 The closing step for M1 and M3 is a **physical-device test by the owner** (APK below).
 
 | Milestone | State |
@@ -18,7 +18,7 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 | M7 Monthly Memories | Highlights + slideshow done; share/export of a month later |
 | M8 Monetization | Built 2026-09-27: `billing` function (server verify + acknowledge, token bound to one family and to the buyer's account tag, 6-hourly renewal refresh), plan features (Daily Story + Ask answers are Plus), plans screen (store price/period/renewal terms, restore, manage link), downgrade never hides data. Mock store verified (`e2e:billing-local` 14/14). Google Play adapter (expo-iap 5.8) compiles but is **unverified** until Play Console products exist |
 | M9 Yearly Story | "First year" story (milestones, one highlight per month of life, totals) + print-ready A5 PDF via share sheet; full data export (zip parts) done |
-| M10 Launch hardening | Privacy controls, account deletion (app + web page), rate limits, cost model, Data Safety + listing drafts done; monitoring/analytics/store assets pending |
+| M10 Launch hardening | Audits done 2026-09-27 (docs/AUDIT_M10.md): security fixes (server-measured uploads, anon revokes), indexes, accessibility fixes, cost simulation, error boundary + monitoring sink, store drafts (listing, Data Safety, icon, feature graphic, draft screenshots). Closed-testing build and release candidate wait for production infrastructure (not created, per instruction) and Play Console |
 
 ## Completed milestones
 - M0 — Foundation (closed 2026-09-26)
@@ -58,7 +58,7 @@ Decisions (2026-09-27): repo stays public until Play launch; app ID `com.tmdrudf
 Done: Supabase, Cloudflare (wrangler), Expo (eas) logins; R2 enabled; R2 API token — 2026-09-26.
 
 ## Staging status
-Supabase staging migrations: 20260926000000 … 20261007000000 applied. Secret `AI_PROVIDER=mock` (deterministic suggestions, no cost).
+Supabase staging migrations: 20260926000000 … 20261009000000 applied. Secret `AI_PROVIDER=mock` (deterministic suggestions, no cost).
 Edge functions: `media-sign` (upload, batch download, purge, export, delete_account; CORS; rate limits) `ai-journal` (suggestions, Daily Story, embeddings, Ask) and `billing` (not configured on staging: purchases are refused until Play is set up) deployed.
 Scripts: `npm run smoke:staging` ✅, `npm run e2e:family` ✅ (13/13), `npm run e2e:delete-account` ✅, `npm run smoke:ai` ✅; local: `e2e:ai-local` 40/40, `e2e:billing-local` 14/14, pgTAP 87/87.
 Agent test account: credentials in local `.env` only (TEST_USER_EMAIL / TEST_USER_PASSWORD).

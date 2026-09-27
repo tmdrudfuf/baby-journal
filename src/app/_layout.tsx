@@ -5,6 +5,20 @@ import { useColorScheme } from 'react-native';
 import { Button, Screen, Text } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { AppProvider, useApp } from '@/state/app';
+import { reportError } from '@/lib/monitoring';
+import type { ErrorBoundaryProps } from 'expo-router';
+
+// Rendering crashes land here instead of a blank screen; memories on the device are untouched.
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  reportError(error, 'render');
+  return (
+    <Screen>
+      <Text variant="title">Something went wrong</Text>
+      <Text color="textSecondary">Your memories on this device are safe. Try again, or restart the app.</Text>
+      <Button label="Try again" onPress={retry} />
+    </Screen>
+  );
+}
 
 function RootStack() {
   const { status, refresh } = useApp();

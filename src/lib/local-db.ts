@@ -90,6 +90,10 @@ const LOCAL_MIGRATIONS = [
      title text not null,
      occurred_on text not null
    );`,
+  // Uploads moved to server-measured asset rows (media-sign confirm): give items that failed under the
+  // old path one more try. Anything still not allowed simply fails again and stays on the phone.
+  `update memories set status = 'pending', attempts = 0, next_attempt_at = 0 where status = 'failed';
+   update tracker_events set status = 'pending', attempts = 0, next_attempt_at = 0 where status = 'failed';`,
 ];
 const localVersion = db.getFirstSync<{ user_version: number }>('pragma user_version')?.user_version ?? 0;
 LOCAL_MIGRATIONS.slice(localVersion).forEach((sql, i) => {

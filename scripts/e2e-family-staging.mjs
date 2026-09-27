@@ -38,7 +38,7 @@ try {
   ok((await req('/rest/v1/memories', { method: 'POST', token: B.token, body: { family_id: fam, baby_id: bab, author_id: B.id } })).status === 403, 'B (viewer) cannot create memories');
   ok((await req('/rest/v1/reactions', { method: 'POST', token: B.token, body: { memory_id: mem.id, family_id: fam } })).status === 201, 'B hearts a memory');
   ok((await req('/rest/v1/comments', { method: 'POST', token: B.token, body: { memory_id: mem.id, family_id: fam, body: 'Beautiful!' } })).status === 201, 'B comments');
-  ok((await req('/rest/v1/comments?select=id', { token: A })).data.length === 1, 'A sees B\'s comment');
+  ok((await req(`/rest/v1/comments?select=id&memory_id=eq.${mem.id}&author_id=eq.${B.id}`, { token: A })).data.length === 1, 'A sees B\'s comment');
   ok((await req('/rest/v1/memories?select=id', { token: C.token })).data.length === 0, 'unrelated C sees no memories');
   ok((await req('/rest/v1/comments?select=id', { token: C.token })).data.length === 0, 'unrelated C sees no comments');
   const { urls } = (await req('/functions/v1/media-sign', { method: 'POST', token: C.token, body: { action: 'download', asset_ids: (await req('/rest/v1/memory_assets?select=id', { token: A })).data.map((a) => a.id) } })).data;
