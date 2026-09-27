@@ -12,7 +12,7 @@ M1 — Magic Journal (not started).
 - [x] Repository hygiene, agent instructions, state file
 - [x] Expo SDK 57 scaffold (TypeScript strict, Expo Router)
 - [x] Design tokens, light/dark, core components (Screen/Text/Card/Button), 5-tab navigation
-- [x] Supabase local config, initial schema, RLS foundation, 24 pgTAP security tests
+- [x] Supabase local config, initial schema, RLS foundation, 25 pgTAP security tests
 - [x] R2 signed-URL edge function (`media-sign`)
 - [x] CI: verify (lint/typecheck/jest), supabase test db, deno check, gitleaks
 - [x] Bootstrap/verify scripts, ARCHITECTURE/DATABASE/SECURITY docs
