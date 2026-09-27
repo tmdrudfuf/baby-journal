@@ -29,6 +29,9 @@ Deno.serve(async (req) => {
   const { memory_id } = await req.json().catch(() => ({}));
   if (typeof memory_id !== 'string') return json({ error: 'invalid memory_id' }, 400);
 
+  const { data: allowedRate } = await db.rpc('hit_rate_limit', { bucket_name: 'ai-journal', max_hits: 120, window_seconds: 3600 });
+  if (!allowedRate) return json({ status: 'unavailable', reason: 'rate limit' });
+
   // Only people who may edit the memory may spend AI on it.
   const { data: allowed } = await db.rpc('can_edit_memory', { mid: memory_id });
   if (!allowed) return json({ error: 'forbidden' }, 403);

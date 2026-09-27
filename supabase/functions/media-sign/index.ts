@@ -53,8 +53,28 @@ async function purgeQueue() {
   }
 }
 
+// action -> [max requests, window seconds]
+const LIMITS: Record<string, [number, number]> = {
+  upload: [600, 3600],
+  download: [1200, 3600],
+  purge: [120, 3600],
+  export: [5, 86_400],
+  delete_account: [5, 3600],
+};
+
 const EXPORT_TTL_SECONDS = 86_400;
 const EXPORT_MAX_PHOTOS = 1000;
+
+// The gateway already verified the JWT signature; this only reads its role claim.
+function jwtRole(req: Request): string | null {
+  try {
+    const token = req.headers.get('Authorization')?.split(' ')[1] ?? '';
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(payload)).role ?? null;
+  } catch {
+    return null;
+  }
+}
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -72,6 +92,14 @@ Deno.serve(async (req) => {
     body = await req.json();
   } catch {
     return json({ error: 'invalid json' }, 400);
+  }
+
+  // Per-user limits (§36, §42). 429 is retryable, so the app's upload queue simply backs off.
+  const limit = LIMITS[String(body.action)];
+  if (limit && jwtRole(req) !== 'authenticated') return json({ error: 'unauthorized' }, 401);
+  if (limit) {
+    const { data: allowed } = await db.rpc('hit_rate_limit', { bucket_name: String(body.action), max_hits: limit[0], window_seconds: limit[1] });
+    if (!allowed) return json({ error: 'too many requests' }, 429);
   }
 
   if (body.action === 'download') {

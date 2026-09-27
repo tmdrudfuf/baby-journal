@@ -28,9 +28,14 @@
 - CI runs gitleaks on every push.
 - Repository is **public**: never commit real configuration, keys or family data.
 
+## Rate limits
+
+Per-user fixed windows in Postgres (`hit_rate_limit`): upload 600/h, download signing 1200/h, purge 120/h,
+export 5/day, account deletion 5/h, AI journal 120/h (plus a per-family daily AI cap). Exceeding returns 429,
+which the app treats as retryable. Non-authenticated callers get 401.
+
 ## Known gaps (tracked)
 
 - Presigned PUT cannot cap object size → quota enforcement at asset-row insert (M8).
 - Owner can demote/remove themselves leaving an ownerless family → guard in M3 (roles).
-- Rate limiting on edge functions → before staging launch.
 - R2 object purge runs when a client calls `media-sign` purge after deletes; add a scheduled drain before launch.
