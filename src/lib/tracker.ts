@@ -77,3 +77,9 @@ export function parseMeasure(text: string, max: number): number | null {
   const n = Number(text.trim().replace(',', '.'));
   return text.trim() && Number.isFinite(n) && n > 0 && n <= max ? Math.round(n * 100) / 100 : null;
 }
+
+export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+export function summaryLine(s: DaySummary): string {
+  return `${plural(s.feeds, 'feed')} · ${formatDuration(s.sleepMinutes)} sleep · ${plural(s.diapers, 'diaper')}`;
+}

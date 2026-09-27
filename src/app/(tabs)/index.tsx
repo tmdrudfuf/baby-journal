@@ -4,9 +4,9 @@ import { Pressable, View } from 'react-native';
 import { MemoryImage } from '@/components/memory-image';
 import { Button, Card, Screen, Text } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
-import { dayNumber, formatTime, greeting, localDayKey } from '@/lib/dates';
+import { dayNumber, formatDate, formatTime, greeting, localDayKey, onThisDayLabel } from '@/lib/dates';
 import { listEvents, listMemories, useLocal } from '@/lib/local-db';
-import { describe, formatDuration, summarizeDay } from '@/lib/tracker';
+import { describe, summarizeDay, summaryLine } from '@/lib/tracker';
 import { useBaby } from '@/state/app';
 
 export default function HomeScreen() {
@@ -27,6 +27,10 @@ export default function HomeScreen() {
       .map((e) => ({ key: e.id, at: e.started_at, text: describe(e, now), memoryId: null })),
   ].sort((a, b) => a.at.localeCompare(b.at));
   const hero = memories.find((m) => m.photo_path || m.display_asset_id);
+  // ponytail: looks at memories on this device (newest 500); query the server when archives grow.
+  const rediscovered = memories
+    .map((m) => ({ m, label: onThisDayLabel(m.occurred_at, now) }))
+    .filter((x): x is { m: typeof x.m; label: string } => x.label !== null);
   const day = baby.birth_date ? dayNumber(baby.birth_date, now) : null;
 
   return (
@@ -50,11 +54,30 @@ export default function HomeScreen() {
         </Text>
       )}
 
+      {rediscovered.length > 0 && (
+        <Card>
+          <Text variant="caption" color="textSecondary">
+            On this day ❤️
+          </Text>
+          {rediscovered.slice(0, 3).map(({ m, label }) => (
+            <Pressable key={m.id} accessibilityRole="button" onPress={() => router.push(`/memory/${m.id}`)} style={{ gap: Spacing.sm }}>
+              {(m.photo_path || m.display_asset_id) && (
+                <MemoryImage localUri={m.photo_path} assetId={m.display_asset_id} style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: Radius.md }} />
+              )}
+              <Text variant="label">{label}</Text>
+              <Text color="textSecondary" numberOfLines={2}>
+                {m.raw_text ?? formatDate(m.occurred_at)}
+              </Text>
+            </Pressable>
+          ))}
+        </Card>
+      )}
       <Card>
         <Text variant="label">Today</Text>
         {events.length > 0 && (
           <Text variant="caption" color="textSecondary">
-            {summary.feeds} feeds · {formatDuration(summary.sleepMinutes)} sleep · {summary.diapers} diapers{summary.sleeping ? ' · sleeping now' : ''}
+            {summaryLine(summary)}
+            {summary.sleeping ? ' · sleeping now' : ''}
           </Text>
         )}
         {today.length === 0 ? (

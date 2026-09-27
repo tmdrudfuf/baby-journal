@@ -6,7 +6,7 @@ import { Spacing } from '@/constants/theme';
 import { formatDate, formatTime, localDayKey } from '@/lib/dates';
 import { latestEvent, listEvents, markEventDeleting, useLocal, type LocalEvent } from '@/lib/local-db';
 import { syncNow } from '@/lib/sync';
-import { describe, formatDuration, summarizeDay } from '@/lib/tracker';
+import { describe, summarizeDay, summaryLine } from '@/lib/tracker';
 import { atLeast, useApp, useBaby } from '@/state/app';
 
 const DAYS_SHOWN = 7;
@@ -49,10 +49,7 @@ export default function GrowthScreen() {
       <Text variant="display">Growth</Text>
       <Card>
         <Text variant="label">Today</Text>
-        <Text>
-          {today.feeds} {today.feeds === 1 ? 'feed' : 'feeds'} · {formatDuration(today.sleepMinutes)} sleep · {today.diapers}{' '}
-          {today.diapers === 1 ? 'diaper' : 'diapers'}
-        </Text>
+        <Text>{summaryLine(today)}</Text>
         {today.sleeping && <Text color="textSecondary">Sleeping now</Text>}
       </Card>
       {growth && (

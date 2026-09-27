@@ -35,3 +35,16 @@ export function formatTime(iso: string): string {
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 }
+
+// "On This Day" (§18): same calendar day in earlier years, plus earlier months during the first
+// year (monthiversaries matter most for new parents). Returns a label, or null if not a match.
+// A 31st matches only months that have a 31st.
+export function onThisDayLabel(iso: string, now: Date): string | null {
+  const d = new Date(iso);
+  if (d.getDate() !== now.getDate()) return null;
+  const months = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+  if (months <= 0) return null;
+  if (months % 12 === 0) return months === 12 ? 'One year ago today' : `${months / 12} years ago today`;
+  if (months < 12) return months === 1 ? 'One month ago today' : `${months} months ago today`;
+  return null;
+}

@@ -109,6 +109,17 @@ export function listMemories(babyId: string): LocalMemory[] {
   );
 }
 
+// Basic search (§62) over what is on this device: the parent's words, suggested stories, milestones.
+export function searchMemories(babyId: string, query: string): LocalMemory[] {
+  const q = `%${query.trim().replace(/[!%_]/g, (c) => '!' + c)}%`; // '!' escapes LIKE wildcards
+  return db.getAllSync<LocalMemory>(
+    `select * from memories where baby_id = ? and status != 'deleting'
+       and (raw_text like ? escape '!' or story_text like ? escape '!' or milestone_title like ? escape '!')
+     order by occurred_at desc limit 100`,
+    babyId, q, q, q,
+  );
+}
+
 export function getMemory(id: string): LocalMemory | null {
   return db.getFirstSync<LocalMemory>(`select * from memories where id = ?`, id);
 }

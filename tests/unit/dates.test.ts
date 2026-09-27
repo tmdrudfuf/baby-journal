@@ -1,4 +1,4 @@
-import { dayNumber, greeting, localDayKey, parseLocalDate } from '@/lib/dates';
+import { dayNumber, greeting, localDayKey, onThisDayLabel, parseLocalDate } from '@/lib/dates';
 import { isDue, isPermanent, PermanentError, retryDelayMs } from '@/lib/sync-policy';
 
 test('birth day is day 1, next day is day 2', () => {
@@ -40,4 +40,17 @@ test('permanent vs retryable sync errors', () => {
   expect(isPermanent({ context: { status: 503 } })).toBe(false);
   expect(isPermanent(new TypeError('Network request failed'))).toBe(false);
   expect(isPermanent({ code: '40001' })).toBe(false);
+});
+
+test('on this day: yearly always, monthly only in the first year', () => {
+  const now = new Date(2027, 8, 26, 9);
+  const at = (y: number, m: number, d: number) => new Date(y, m, d, 20).toISOString();
+  expect(onThisDayLabel(at(2026, 8, 26), now)).toBe('One year ago today');
+  expect(onThisDayLabel(at(2025, 8, 26), now)).toBe('2 years ago today');
+  expect(onThisDayLabel(at(2027, 7, 26), now)).toBe('One month ago today');
+  expect(onThisDayLabel(at(2027, 2, 26), now)).toBe('6 months ago today');
+  expect(onThisDayLabel(at(2026, 10, 26), now)).toBe('10 months ago today');
+  expect(onThisDayLabel(at(2027, 8, 26), now)).toBeNull(); // today itself
+  expect(onThisDayLabel(at(2027, 8, 25), now)).toBeNull();
+  expect(onThisDayLabel(at(2025, 11, 26), now)).toBeNull(); // 21 months: not a year boundary
 });

@@ -5,11 +5,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MemoryImage } from '@/components/memory-image';
 import { SyncBadge } from '@/components/sync-badge';
-import { Button, Card, Text } from '@/components/ui';
+import { Button, Card, Field, Text } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDate, formatTime } from '@/lib/dates';
-import { listMemories, useLocal, type LocalMemory } from '@/lib/local-db';
+import { listMemories, searchMemories, useLocal, type LocalMemory } from '@/lib/local-db';
 import { syncNow } from '@/lib/sync';
 import { useBaby } from '@/state/app';
 
@@ -34,7 +34,9 @@ function MemoryCard({ memory }: { memory: LocalMemory }) {
 export default function JournalScreen() {
   const baby = useBaby();
   const theme = useTheme();
-  const memories = useLocal(() => listMemories(baby.id));
+  const [query, setQuery] = useState('');
+  const searching = query.trim().length > 0;
+  const memories = useLocal(() => (searching ? searchMemories(baby.id, query) : listMemories(baby.id)));
   const [refreshing, setRefreshing] = useState(false);
 
   async function refresh() {
@@ -51,12 +53,24 @@ export default function JournalScreen() {
         renderItem={({ item }) => <MemoryCard memory={item} />}
         contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.md }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
-        ListHeaderComponent={<Text variant="display">Journal</Text>}
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={
+          <>
+            <Text variant="display">Journal</Text>
+            <Field label="Search" value={query} onChangeText={setQuery} placeholder="First smile, bath, Grandma…" returnKeyType="search" />
+          </>
+        }
         ListEmptyComponent={
+          searching ? (
+            <Card>
+              <Text color="textSecondary">No memories match “{query.trim()}”.</Text>
+            </Card>
+          ) : (
           <Card>
             <Text color="textSecondary">Your memories will appear here, newest first.</Text>
             <Button label="Capture the first one" variant="accent" onPress={() => router.navigate('/capture')} />
           </Card>
+          )
         }
       />
     </SafeAreaView>

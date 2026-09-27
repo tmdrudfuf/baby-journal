@@ -1,4 +1,4 @@
-import { describe as describeEvent, formatDuration, parseMeasure, summarizeDay, type TrackerEvent } from '@/lib/tracker';
+import { describe as describeEvent, formatDuration, parseMeasure, summarizeDay, summaryLine, type TrackerEvent } from '@/lib/tracker';
 
 const at = (d: number, h: number, m = 0) => new Date(2026, 8, d, h, m).toISOString();
 const ev = (kind: TrackerEvent['kind'], started_at: string, ended_at: string | null = null, data = {}): TrackerEvent => ({
@@ -46,4 +46,8 @@ test('durations and measurement parsing', () => {
   expect(parseMeasure('', 30)).toBeNull();
   expect(parseMeasure('300', 30)).toBeNull();
   expect(parseMeasure('abc', 30)).toBeNull();
+});
+
+test('summary line pluralizes', () => {
+  expect(summaryLine({ feeds: 1, sleepMinutes: 90, diapers: 2, sleeping: false })).toBe('1 feed · 1h 30m sleep · 2 diapers');
 });
