@@ -3,57 +3,59 @@
 _Last updated: 2026-09-26_
 
 ## Current milestone
-M1 — Magic Journal (not started).
+M1 — Magic Journal: code complete, emulator-verified against staging. Waiting on physical-device test (acceptance: "a real device can create a baby and permanently save/retrieve a photo memory").
 
 ## Completed milestones
 - M0 — Foundation (closed 2026-09-26)
 
 ## Active tasks
-- [x] Repository hygiene, agent instructions, state file
-- [x] Expo SDK 57 scaffold (TypeScript strict, Expo Router)
-- [x] Design tokens, light/dark, core components (Screen/Text/Card/Button), 5-tab navigation
-- [x] Supabase local config, initial schema, RLS foundation, 25 pgTAP security tests
-- [x] R2 signed-URL edge function (`media-sign`)
-- [x] CI: verify (lint/typecheck/jest), supabase test db, deno check, gitleaks
-- [x] Bootstrap/verify scripts, ARCHITECTURE/DATABASE/SECURITY docs
-- [x] Staging Supabase project `baby-journal-staging` (ref `stdlwvahmexetlrrzpld`, ap-northeast-2), schema deployed
-- [x] R2 enabled; bucket `baby-journal-media-staging` (APAC) created
-- [x] `media-sign` deployed to staging; secrets R2_ACCOUNT_ID, R2_BUCKET set
-- [x] R2 bucket-scoped API token `baby-journal-staging` stored as Supabase secrets
-- [x] Staging E2E smoke passed (`npm run smoke:staging`)
+- [x] Auth (email + password), onboarding (family + baby), protected routes
+- [x] Local-first capture (camera/library/text) into on-device SQLite; photo variants; EXIF stripped on upload
+- [x] Sync: push with backoff, pull/merge, delete + R2 purge (deletion outbox migration 20260927000000)
+- [x] Home (day count, today, hero photo), Journal, memory detail (edit text, delete)
+- [x] Emulator E2E (release build, staging): sign-in → onboarding → camera photo → synced; offline capture survives kill/relaunch and syncs on reconnect; delete removes row + R2 objects
+- [x] EAS project linked; preview profile (APK) with staging env vars on EAS
+- [ ] Physical-device test by human (preview APK)
+- [ ] Growth (M4) and Family invites (M3) tabs are placeholders
 
 ## Known issues
-- none (local Docker + Supabase verified 2026-09-26: 25/25 pgTAP, schema lint clean).
+- Staging requires email confirmation for sign-up (Supabase default). Confirmation mail links point at `http://localhost:3000` but still confirm the account. Needs a decision: turn off "Confirm email" for staging, or add custom SMTP + deep link before launch.
+- Memory edit/delete UI only for the author; caregiver editing others' memories comes with roles UI (M3).
+- Pull fetches the newest 500 memories per baby (pagination later).
 - See docs/SECURITY.md "Known gaps".
 
 ## External dependencies
 - Supabase: local via Docker; staging `stdlwvahmexetlrrzpld` (Seoul). Org `ehavtkfjgshwshafwmuz` also holds an unrelated project.
 - Cloudflare R2: account 0dbe6f1e92aded8a2aca97127de4e0b9, bucket `baby-journal-media-staging`.
-- Expo/EAS: not yet linked (needed for Android builds in M1).
+- Expo/EAS: project `@tmdrudfuf/baby-journal` (b539689d-d022-4104-a66f-c140347e1740); Android keystore managed by EAS.
 
 ## Required human actions
-1. Decide repo visibility: `tmdrudfuf/baby-journal` is PUBLIC (secret scanning + push protection ON).
-2. Confirm Android application ID `com.tmdrudfuf.babyjournal` (permanent after first Play upload).
+1. Install the preview APK on an Android phone and run the M1 device checklist.
+2. Decide: staging email confirmation on/off (see Known issues).
+3. Decide repo visibility: `tmdrudfuf/baby-journal` is PUBLIC (secret scanning + push protection ON).
+4. Confirm Android application ID `com.tmdrudfuf.babyjournal` (permanent after first Play upload).
 
 Done: Supabase, Cloudflare (wrangler), Expo (eas) logins — 2026-09-26.
 
 ## Staging status
-Supabase staging: migration 20260926000000 applied, schema lint clean, anon smoke test denied (2026-09-26).
-Edge functions: `media-sign` deployed and working. Smoke 2026-09-26: create user/family/baby/memory, signed upload + download (bytes match), unsigned URL denied, anon signing denied, cleanup OK.
+Supabase staging: migrations 20260926000000, 20260927000000 applied.
+Edge functions: `media-sign` (upload, batch download, purge) deployed. `npm run smoke:staging` passes (incl. delete + purge).
+Agent test account: credentials in local `.env` only (TEST_USER_EMAIL / TEST_USER_PASSWORD).
 
 ## Production status
 Not deployed.
 
 ## Latest test result
-2026-09-26 CI on main: app ✅ (lint, typecheck, 16 jest tests), database ✅ (25/25 pgTAP), functions ✅, secrets ✅.
+2026-09-26: `npm run verify` ✅ (lint, typecheck, jest), pgTAP 29/29 ✅, staging smoke ✅, emulator E2E ✅.
 
 ## Latest build
-Fresh clone → `npm run bootstrap && npm run verify` passes (M0 acceptance, minus Docker).
-Android JS bundle exports cleanly (`expo export --platform android`). No native/AAB build yet.
+- Local Android debug + release builds on emulator (`npx expo run:android [--variant release]`).
+- EAS preview APK build b17328a2-bf4b-42cc-8883-206593f74ac4.
 
 ## Important architectural decisions
 See docs/ARCHITECTURE.md. Highlights:
 - Postgres RLS is the single authorization point; all policies route through `has_family_role()`.
-- Media in R2 under `families/{family_id}/…`, presigned 5-minute URLs from `media-sign`.
-- Client-generated memory UUIDs for idempotent offline sync.
+- Media in R2 under `families/{family_id}/memories/{memory_id}/`, presigned 5-minute URLs from `media-sign`.
+- On-device SQLite is the source of truth for capture; client-generated UUIDs make sync idempotent.
+- Deleting asset rows queues R2 keys (`media_deletions`); `media-sign` purge drains them.
 - Repo is public: no secrets or family data ever committed.
