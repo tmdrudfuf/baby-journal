@@ -98,6 +98,7 @@ async function pull(babyId: string) {
 }
 
 let running: Promise<void> | null = null;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function syncNow(babyId: string | undefined, { force = false } = {}): Promise<void> {
   running ??= (async () => {
@@ -117,9 +118,18 @@ export function syncNow(babyId: string | undefined, { force = false } = {}): Pro
       if (babyId) await pull(babyId).catch(() => undefined); // offline: keep showing local data
     } finally {
       running = null;
+      scheduleRetry(babyId);
     }
   })();
   return running;
+}
+
+// Wake up when the earliest failed item is due, so backoff retries happen without user action.
+function scheduleRetry(babyId: string | undefined) {
+  if (retryTimer) clearTimeout(retryTimer);
+  retryTimer = null;
+  const next = Math.min(...local.queued().map((m) => m.next_attempt_at));
+  if (Number.isFinite(next)) retryTimer = setTimeout(() => syncNow(babyId), Math.max(1_000, next - Date.now()));
 }
 
 // Milestone + story decisions need the server (they are family-visible). Online only for now.
