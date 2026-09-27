@@ -5,7 +5,7 @@
 // POST { action: 'download', asset_ids: uuid[] }     -> { urls: { [asset_id]: url }, expires_in }
 // POST { action: 'purge' }                           -> { deleted }  (drains media_deletions)
 // POST { action: 'delete_account' }                  -> { deleted: true }  (§37; Play account-deletion requirement)
-// POST { action: 'export', tz? }                     -> { url, expires_in, photos }  (§37 data export, zip in R2 for 24 h)
+// POST { action: 'export', tz?, part? }              -> { url, expires_in, part, parts }  (§37 data export, zip in R2 for 24 h)
 import { AwsClient } from 'npm:aws4fetch@1.0.20';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { strToU8, zipSync } from 'npm:fflate@0.8.2';
@@ -43,9 +43,13 @@ async function purgeQueue() {
     const { data: queued } = await admin.from('media_deletions').select('object_key').limit(MAX_BATCH);
     if (!queued?.length) return total;
     const done: string[] = [];
-    for (const { object_key } of queued) {
-      const res = await r2.fetch(`${bucketUrl}/${object_key}`, { method: 'DELETE' });
-      if (res.ok) done.push(object_key);
+    for (let i = 0; i < queued.length; i += 10) {
+      await Promise.all(
+        queued.slice(i, i + 10).map(async ({ object_key }) => {
+          const res = await r2.fetch(`${bucketUrl}/${object_key}`, { method: 'DELETE' });
+          if (res.ok) done.push(object_key);
+        }),
+      );
     }
     if (!done.length) return total; // R2 unavailable: leave the rest for the next purge
     await admin.from('media_deletions').delete().in('object_key', done);
@@ -58,13 +62,14 @@ const LIMITS: Record<string, [number, number]> = {
   upload: [600, 3600],
   download: [1200, 3600],
   purge: [120, 3600],
-  export: [5, 86_400],
+  export: [50, 86_400], // per part
   delete_account: [5, 3600],
 };
 
 const EXPORT_TTL_SECONDS = 86_400;
 const MAX_VARIANT_BYTES = 5 * 1024 * 1024; // display variants are ~0.3 MB; headroom for quota checks
-const EXPORT_MAX_PHOTOS = 1000;
+// Edge functions get 256 MB and 2 s CPU: photos are split into parts; unzip all parts into one folder.
+const EXPORT_PHOTOS_PER_PART = 50; // measured: 50 × 350 KB ≈ 13 s; 200 exceeded compute limits
 
 // The gateway already verified the JWT signature; this only reads its role claim.
 function jwtRole(req: Request): string | null {
@@ -84,6 +89,13 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// Keeps work running after the response (Supabase Edge Runtime); falls back to awaiting nothing.
+function background(p: Promise<unknown>) {
+  const rt = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;
+  if (rt) rt.waitUntil(p);
+  else p.catch(() => undefined);
+}
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...CORS } });
@@ -173,7 +185,9 @@ Deno.serve(async (req) => {
     }
     const files: Record<string, Uint8Array> = {};
     const out: ExportBaby[] = [];
-    let photos = 0;
+    const part = Math.max(1, Math.floor(Number(body.part) || 1));
+    let photoIndex = 0; // across all babies; decides which part carries each photo
+    const fetches: Promise<void>[] = [];
     for (const b of babies ?? []) {
       const [mem, ms, logs] = await Promise.all([
         db.from('memories')
@@ -187,14 +201,18 @@ Deno.serve(async (req) => {
       for (const m of mem.data ?? []) {
         const key = m.memory_assets.find((a: { variant: string }) => a.variant === 'display')?.object_key;
         let photo: string | null = null;
-        // ponytail: whole zip is built in memory; stream it (or split per year) when archives get large.
-        if (key && photos < EXPORT_MAX_PHOTOS) {
-          const res = await r2.fetch(`${bucketUrl}/${key}`);
-          if (res.ok) {
-            photo = `photos/${localDay(m.occurred_at, tz)}-${m.id.slice(0, 8)}.jpg`;
-            files[photo] = new Uint8Array(await res.arrayBuffer());
-            photos++;
+        if (key) {
+          const path = `photos/${localDay(m.occurred_at, tz)}-${m.id.slice(0, 8)}.jpg`;
+          photo = path; // every part's journal lists every photo; only this part's bytes are included
+          if (Math.floor(photoIndex / EXPORT_PHOTOS_PER_PART) === part - 1) {
+            fetches.push(
+              r2.fetch(`${bucketUrl}/${key}`).then(async (res) => {
+                if (res.ok) files[path] = new Uint8Array(await res.arrayBuffer());
+              }),
+            );
+            if (fetches.length % 8 === 0) await Promise.all(fetches.slice(-8)); // modest parallelism
           }
+          photoIndex++;
         }
         memories.push({
           id: m.id,
@@ -219,15 +237,18 @@ Deno.serve(async (req) => {
         logs: logs.data ?? [],
       });
     }
+    await Promise.all(fetches);
+    const parts = Math.max(1, Math.ceil(photoIndex / EXPORT_PHOTOS_PER_PART));
+    if (part > parts) return json({ error: 'no such part' }, 400);
     const exportedAt = new Date().toISOString();
     files['journal.json'] = strToU8(JSON.stringify({ exported_at: exportedAt, babies: out }, null, 2));
     files['index.html'] = strToU8(exportHtml(out, localDay(exportedAt, tz), tz));
     const zip = zipSync(files, { level: 0 }); // photos are already compressed
-    const key = `exports/${me}/baby-journal-${exportedAt.slice(0, 10)}-${crypto.randomUUID().slice(0, 8)}.zip`;
+    const key = `exports/${me}/baby-journal-${exportedAt.slice(0, 10)}-part${part}of${parts}-${crypto.randomUUID().slice(0, 8)}.zip`;
     const put = await r2.fetch(`${bucketUrl}/${key}`, { method: 'PUT', body: new Uint8Array(zip), headers: { 'Content-Type': 'application/zip' } });
     if (!put.ok) return json({ error: 'could not store export' }, 502);
     // R2 lifecycle rule deletes exports/ after one day.
-    return json({ url: await presign('GET', key, EXPORT_TTL_SECONDS), expires_in: EXPORT_TTL_SECONDS, photos });
+    return json({ url: await presign('GET', key, EXPORT_TTL_SECONDS), expires_in: EXPORT_TTL_SECONDS, part, parts });
   }
 
   if (body.action === 'delete_account') {
@@ -269,7 +290,8 @@ Deno.serve(async (req) => {
     }
     const { error } = await admin.auth.admin.deleteUser(me); // cascades profile + memberships
     if (error) return json({ error: 'could not delete account' }, 500);
-    await purgeQueue();
+    // Answer now; photos are removed in the background (the 15-minute sweep catches any leftovers).
+    background(purgeQueue());
     return json({ deleted: true });
   }
 

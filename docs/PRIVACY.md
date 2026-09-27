@@ -41,12 +41,12 @@ advertising IDs, analytics about journal content. There is no advertising and no
 | Delete the family (owner) | Family → Privacy | Everything in the family, including photos |
 | Delete my account | Family → Privacy, or site/delete-account.html | Login + profile removed. A family with no other members is deleted with all content. Families other people belong to are kept: you leave, ownership passes to the highest-ranked member if you were the only owner, your memories stay with the family (author cleared) |
 | Remove a member (owner) | Family → Members | They lose access immediately |
-| Download my data | Family → Privacy | Zip with journal.json, a readable index.html and photos, built from what you can see; stored under `exports/` in R2 and auto-deleted after 1 day |
+| Download my data | Family → Privacy | Zip(s) with journal.json, a readable index.html and photos (50 per part; unzip all parts into one folder), built from what you can see; stored under `exports/` in R2 and auto-deleted after 1 day |
 
 Tested end to end: `npm run e2e:delete-account`.
 
 ## Not yet done
 
-- Data export includes at most 1000 photos per download (built in memory).
+- Large exports come in 50-photo parts (edge-function memory/CPU limits); a streaming exporter would allow one file.
 - A web page for account-deletion requests (Google Play asks for one) — needs a public URL.
 - Custom email sender for sign-up confirmation.

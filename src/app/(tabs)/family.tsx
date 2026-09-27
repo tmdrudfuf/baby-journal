@@ -34,6 +34,7 @@ export default function FamilyScreen() {
   const [busy, setBusy] = useState(false);
   const [reminder, setReminderState] = useState<Reminder>(getReminder);
   const [pickingTime, setPickingTime] = useState(false);
+  const [exportParts, setExportParts] = useState(0);
 
   async function updateReminder(r: Reminder) {
     const ok = await setReminder(r);
@@ -130,16 +131,22 @@ export default function FamilyScreen() {
     }
   }
 
-  // Builds a zip (journal.json + readable index.html + photos) on the server; link valid for 24 h.
-  async function exportData() {
+  // Builds zips on the server (journal.json + readable index.html + up to 50 photos each); links work 24 h.
+  // Larger journals come in parts: unzip all parts into one folder.
+  async function exportData(part = 1) {
     setBusy(true);
-    setMessage('Preparing your download… this can take a minute.');
+    setMessage(`Preparing download${part > 1 ? ` part ${part}` : ''}… this can take a minute.`);
     const { data, error } = await supabase.functions.invoke('media-sign', {
-      body: { action: 'export', tz: Intl.DateTimeFormat().resolvedOptions().timeZone },
+      body: { action: 'export', part, tz: Intl.DateTimeFormat().resolvedOptions().timeZone },
     });
     setBusy(false);
     if (error || !data?.url) return setMessage('Could not prepare your data. Check your connection and try again.');
-    setMessage('Your download is ready. The link works for 24 hours.');
+    setExportParts(data.parts);
+    setMessage(
+      data.parts > 1
+        ? `Part ${data.part} of ${data.parts} is ready. Download every part and unzip them into one folder.`
+        : 'Your download is ready. The link works for 24 hours.',
+    );
     Linking.openURL(data.url);
   }
 
@@ -285,7 +292,11 @@ export default function FamilyScreen() {
       <Card>
         <Text variant="label">Privacy</Text>
         <Text color="textSecondary">Your family&apos;s memories are private. They are never sold or used for ads.</Text>
-        <Button variant="ghost" label="Download my data" onPress={exportData} disabled={busy} />
+        <Button variant="ghost" label="Download my data" onPress={() => exportData(1)} disabled={busy} />
+        {exportParts > 1 &&
+          Array.from({ length: exportParts - 1 }, (_, i) => i + 2).map((p) => (
+            <Button key={p} variant="ghost" label={`Download part ${p} of ${exportParts}`} onPress={() => exportData(p)} disabled={busy} />
+          ))}
         {isOwner && <Button variant="ghost" label="Delete this family" onPress={confirmDeleteFamily} disabled={busy} />}
         <Button variant="ghost" label="Delete my account" onPress={confirmDeleteAccount} disabled={busy} />
       </Card>
