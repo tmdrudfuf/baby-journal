@@ -8,7 +8,7 @@
     "scheme": "babyjournal",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.tmdrudfuf.babyjournal"
     },
     "android": {
@@ -33,7 +33,7 @@
         {
           "backgroundColor": "#FAF6EF",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 160
         }
       ],
       "expo-sqlite",
