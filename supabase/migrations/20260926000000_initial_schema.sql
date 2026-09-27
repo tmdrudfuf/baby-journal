@@ -109,6 +109,19 @@ as $$
   );
 $$;
 
+-- Same rule as memories update/delete; shared by asset policies and media-sign.
+create function public.can_edit_memory(mid uuid)
+returns boolean
+language sql stable security definer set search_path = ''
+as $$
+  select exists (
+    select 1 from public.memories m
+    where m.id = mid
+      and public.has_family_role(m.family_id, 'contributor')
+      and (m.author_id = auth.uid() or public.has_family_role(m.family_id, 'caregiver'))
+  );
+$$;
+
 create function public.handle_new_user()
 returns trigger
 language plpgsql security definer set search_path = ''
@@ -274,23 +287,9 @@ create policy memories_delete on public.memories for delete to authenticated
 create policy assets_select on public.memory_assets for select to authenticated
   using (exists (select 1 from public.memories m where m.id = memory_id));
 create policy assets_insert on public.memory_assets for insert to authenticated
-  with check (
-    public.has_family_role(family_id, 'contributor')
-    and exists (
-      select 1 from public.memories m
-      where m.id = memory_id
-        and (m.author_id = auth.uid() or public.has_family_role(m.family_id, 'caregiver'))
-    )
-  );
+  with check (public.can_edit_memory(memory_id));
 create policy assets_delete on public.memory_assets for delete to authenticated
-  using (
-    public.has_family_role(family_id, 'contributor')
-    and exists (
-      select 1 from public.memories m
-      where m.id = memory_id
-        and (m.author_id = auth.uid() or public.has_family_role(m.family_id, 'caregiver'))
-    )
-  );
+  using (public.can_edit_memory(memory_id));
 
 -- invitations: created/accepted via functions; caregivers can list and revoke.
 create policy invitations_select on public.invitations for select to authenticated
