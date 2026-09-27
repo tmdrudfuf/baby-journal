@@ -109,6 +109,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'memories', filter: `family_id=eq.${familyId}` }, () =>
         syncNow(babyId),
       )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tracker_events', filter: `family_id=eq.${familyId}` }, () =>
+        syncNow(babyId),
+      )
       .subscribe();
     let wasOnline = true;
     const net = NetInfo.addEventListener((s) => {

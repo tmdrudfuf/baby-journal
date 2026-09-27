@@ -27,13 +27,14 @@ export default function MemoryScreen() {
     );
   }
 
+  const m = memory; // non-null from here on (hoisted functions below cannot see the narrowing)
   const role = baby?.role ?? 'viewer';
   const canEdit =
     (memory.author_id === session?.user.id && atLeast(role, 'contributor')) || atLeast(role, 'caregiver');
   const hasPhoto = memory.photo_path || memory.display_asset_id;
 
   function saveText() {
-    updateText(memory!.id, draft!.trim());
+    updateText(m.id, (draft ?? '').trim());
     setDraft(null);
     syncNow(baby?.id);
   }
@@ -54,7 +55,7 @@ export default function MemoryScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: () => {
-          markDeleting(memory!.id);
+          markDeleting(m.id);
           syncNow(baby?.id);
           router.back();
         },
@@ -95,7 +96,7 @@ export default function MemoryScreen() {
           </Text>
           <Text variant="title">{memory.milestone_title}</Text>
           <Text color="textSecondary">{formatDate(memory.occurred_at)}</Text>
-          <Button label="Save milestone" variant="accent" onPress={() => act(() => confirmMilestone(memory, memory.milestone_title!))} />
+          <Button label="Save milestone" variant="accent" onPress={() => act(() => confirmMilestone(memory, memory.milestone_title ?? ''))} />
           <Button label="Not a milestone" variant="ghost" onPress={() => act(() => dismissMilestone(memory))} />
         </Card>
       )}

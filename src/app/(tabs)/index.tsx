@@ -5,7 +5,8 @@ import { MemoryImage } from '@/components/memory-image';
 import { Button, Card, Screen, Text } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { dayNumber, formatTime, greeting, localDayKey } from '@/lib/dates';
-import { listMemories, useLocal } from '@/lib/local-db';
+import { listEvents, listMemories, useLocal } from '@/lib/local-db';
+import { describe, formatDuration, summarizeDay } from '@/lib/tracker';
 import { useBaby } from '@/state/app';
 
 export default function HomeScreen() {
@@ -13,7 +14,18 @@ export default function HomeScreen() {
   const memories = useLocal(() => listMemories(baby.id));
   const now = new Date();
   const todayKey = localDayKey(now);
-  const today = memories.filter((m) => localDayKey(new Date(m.occurred_at)) === todayKey);
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toISOString();
+  const events = useLocal(() => listEvents(baby.id, dayStart)).map((e) => ({ ...e, data: JSON.parse(e.data) as Record<string, unknown> }));
+  const summary = summarizeDay(events, now, now);
+  // TODAY mixes memories and tracker entries, oldest first like a diary page (§11).
+  const today = [
+    ...memories
+      .filter((m) => localDayKey(new Date(m.occurred_at)) === todayKey)
+      .map((m) => ({ key: m.id, at: m.occurred_at, text: m.raw_text || 'Photo', memoryId: m.id as string | null })),
+    ...events
+      .filter((e) => localDayKey(new Date(e.started_at)) === todayKey)
+      .map((e) => ({ key: e.id, at: e.started_at, text: describe(e, now), memoryId: null })),
+  ].sort((a, b) => a.at.localeCompare(b.at));
   const hero = memories.find((m) => m.photo_path || m.display_asset_id);
   const day = baby.birth_date ? dayNumber(baby.birth_date, now) : null;
 
@@ -40,14 +52,24 @@ export default function HomeScreen() {
 
       <Card>
         <Text variant="label">Today</Text>
+        {events.length > 0 && (
+          <Text variant="caption" color="textSecondary">
+            {summary.feeds} feeds · {formatDuration(summary.sleepMinutes)} sleep · {summary.diapers} diapers{summary.sleeping ? ' · sleeping now' : ''}
+          </Text>
+        )}
         {today.length === 0 ? (
           <Text color="textSecondary">No moments yet today. Your first one takes about 10 seconds.</Text>
         ) : (
-          today.map((m) => (
-            <Pressable key={m.id} accessibilityRole="button" onPress={() => router.push(`/memory/${m.id}`)} style={{ flexDirection: 'row', gap: Spacing.md, minHeight: 32 }}>
-              <Text color="textSecondary">{formatTime(m.occurred_at)}</Text>
+          today.map((item) => (
+            <Pressable
+              key={item.key}
+              accessibilityRole={item.memoryId ? 'button' : 'text'}
+              disabled={!item.memoryId}
+              onPress={() => item.memoryId && router.push(`/memory/${item.memoryId}`)}
+              style={{ flexDirection: 'row', gap: Spacing.md, minHeight: 32 }}>
+              <Text color="textSecondary">{formatTime(item.at)}</Text>
               <Text numberOfLines={1} style={{ flex: 1 }}>
-                {m.raw_text || 'Photo'}
+                {item.text}
               </Text>
             </Pressable>
           ))

@@ -98,6 +98,41 @@ async function pull(babyId: string) {
   pruned.forEach(deleteLocalFiles);
 }
 
+const EVENT_WINDOW_DAYS = 30;
+
+async function pushEvent(e: local.LocalEvent) {
+  if (e.status === 'deleting') {
+    const { error } = await supabase.from('tracker_events').delete().eq('id', e.id);
+    if (error) throw error;
+    return local.removeEventLocal(e.id);
+  }
+  const { error } = await supabase.from('tracker_events').upsert({
+    id: e.id,
+    family_id: e.family_id,
+    baby_id: e.baby_id,
+    author_id: e.author_id,
+    kind: e.kind,
+    started_at: e.started_at,
+    ended_at: e.ended_at,
+    data: JSON.parse(e.data),
+    note: e.note,
+  });
+  if (error) throw error;
+  local.markEventSynced(e.id);
+}
+
+// Only called inside syncNow (see pull).
+async function pullEvents(babyId: string) {
+  const since = new Date(Date.now() - EVENT_WINDOW_DAYS * 86_400_000).toISOString();
+  const { data, error } = await supabase
+    .from('tracker_events')
+    .select('id, family_id, baby_id, author_id, kind, started_at, ended_at, data, note')
+    .eq('baby_id', babyId)
+    .gte('started_at', since);
+  if (error) throw error;
+  local.mergeRemoteEvents(babyId, data as local.RemoteEvent[], since);
+}
+
 let running: Promise<void> | null = null;
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -116,7 +151,20 @@ export function syncNow(babyId: string | undefined, { force = false } = {}): Pro
           local.markFailed(m.id, e instanceof Error ? e.message : String(e), attempts, now + retryDelayMs(attempts));
         }
       }
-      if (babyId) await pull(babyId).catch(() => undefined); // offline: keep showing local data
+      for (const e of local.queuedEvents()) {
+        if (!isDue(e.next_attempt_at, now, force)) continue;
+        try {
+          await pushEvent(e);
+        } catch (err) {
+          const attempts = e.attempts + 1;
+          local.markEventFailed(e.id, err instanceof Error ? err.message : String(err), attempts, now + retryDelayMs(attempts));
+        }
+      }
+      if (babyId) {
+        // Offline: keep showing local data.
+        await pull(babyId).catch(() => undefined);
+        await pullEvents(babyId).catch(() => undefined);
+      }
     } finally {
       running = null;
       scheduleRetry(babyId);
@@ -129,7 +177,7 @@ export function syncNow(babyId: string | undefined, { force = false } = {}): Pro
 function scheduleRetry(babyId: string | undefined) {
   if (retryTimer) clearTimeout(retryTimer);
   retryTimer = null;
-  const next = Math.min(...local.queued().map((m) => m.next_attempt_at));
+  const next = Math.min(...[...local.queued(), ...local.queuedEvents()].map((m) => m.next_attempt_at));
   if (Number.isFinite(next)) retryTimer = setTimeout(() => syncNow(babyId), Math.max(1_000, next - Date.now()));
 }
 

@@ -6,7 +6,8 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { LocalMemory } from '@/lib/local-db';
 
-export function SyncBadge({ memory }: { memory: LocalMemory }) {
+// Works for anything in the upload queue (memories, tracker events).
+export function SyncBadge({ memory }: { memory: Pick<LocalMemory, 'status' | 'attempts'> }) {
   const theme = useTheme();
   if (memory.status === 'synced') return null;
   // Icon + words, never color alone (§24).

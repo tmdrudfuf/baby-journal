@@ -257,6 +257,31 @@ isOneToOne: false
       referencedColumns: ["id","family_id"]
     }
                   ]
+                },"tracker_events": {
+                  Row: {
+                    "author_id": string | null,"baby_id": string,"created_at": string,"data": NonNullable<Json>,"ended_at": string | null,"family_id": string,"id": string,"kind": string,"note": string | null,"started_at": string,"updated_at": string
+                  }
+                  Insert: {
+                    "author_id"?: string | null,"baby_id": string,"created_at"?: string,"data"?: NonNullable<Json>,"ended_at"?: string | null,"family_id": string,"id"?: string,"kind": string,"note"?: string | null,"started_at": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "author_id"?: string | null,"baby_id"?: string,"created_at"?: string,"data"?: NonNullable<Json>,"ended_at"?: string | null,"family_id"?: string,"id"?: string,"kind"?: string,"note"?: string | null,"started_at"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tracker_events_author_id_fkey"
+      columns: ["author_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tracker_events_baby_id_family_id_fkey"
+      columns: ["baby_id","family_id"]
+isOneToOne: false
+      referencedRelation: "babies"
+      referencedColumns: ["id","family_id"]
+    }
+                  ]
                 }
           }
           Views: {

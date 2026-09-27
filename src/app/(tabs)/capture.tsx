@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { MemoryImage } from '@/components/memory-image';
+import { QuickLog } from '@/components/quick-log';
 import { Button, Field, Screen, Text } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { insertMemory } from '@/lib/local-db';
@@ -112,6 +113,7 @@ export default function CaptureScreen() {
       />
       {error && <Text color="textSecondary">{error}</Text>}
       <Button label="Save memory" variant="accent" onPress={save} disabled={busy || (!photo && !text.trim())} />
+      <QuickLog />
     </Screen>
   );
 }

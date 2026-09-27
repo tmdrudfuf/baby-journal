@@ -2,6 +2,8 @@
 import { openDatabaseSync } from 'expo-sqlite';
 import { useSyncExternalStore } from 'react';
 
+import type { EventKind } from '@/lib/tracker';
+
 export type SyncStatus = 'pending' | 'synced' | 'deleting';
 
 export type LocalMemory = {
@@ -58,6 +60,22 @@ const LOCAL_MIGRATIONS = [
    alter table memories add column milestone_candidate integer not null default 0;
    alter table memories add column milestone_title text;`,
   `alter table memories add column author_name text;`,
+  `create table tracker_events (
+     id text primary key,
+     family_id text not null,
+     baby_id text not null,
+     author_id text,
+     kind text not null,
+     started_at text not null,
+     ended_at text,
+     data text not null default '{}',
+     note text,
+     status text not null,
+     attempts integer not null default 0,
+     next_attempt_at integer not null default 0,
+     last_error text
+   );
+   create index tracker_baby_time on tracker_events (baby_id, started_at desc);`,
 ];
 const localVersion = db.getFirstSync<{ user_version: number }>('pragma user_version')?.user_version ?? 0;
 LOCAL_MIGRATIONS.slice(localVersion).forEach((sql, i) => {
@@ -128,7 +146,8 @@ export function queued(): LocalMemory[] {
 }
 
 export function pendingCount(): number {
-  return db.getFirstSync<{ n: number }>(`select count(*) as n from memories where status != 'synced'`)?.n ?? 0;
+  const n = (table: string) => db.getFirstSync<{ n: number }>(`select count(*) as n from ${table} where status != 'synced'`)?.n ?? 0;
+  return n('memories') + n('tracker_events');
 }
 
 export function markSynced(id: string, assets: { display?: string; thumbnail?: string }) {
@@ -187,6 +206,7 @@ export function mergeRemote(babyId: string, rows: RemoteMemory[], complete: bool
 
 export function wipe() {
   db.runSync(`delete from memories`);
+  db.runSync(`delete from tracker_events`);
   changed();
 }
 
@@ -195,4 +215,107 @@ export function useLocal<T>(read: () => T): T {
   'use no memo'; // the compiler must not cache read(): its input is the database, not props
   useSyncExternalStore(subscribe, () => version);
   return read();
+}
+
+// ---------------------------------------------------------------- tracker events (M4)
+
+export type LocalEvent = {
+  id: string;
+  family_id: string;
+  baby_id: string;
+  author_id: string | null;
+  kind: EventKind;
+  started_at: string;
+  ended_at: string | null;
+  data: string; // JSON object
+  note: string | null;
+  status: SyncStatus;
+  attempts: number;
+  next_attempt_at: number;
+  last_error: string | null;
+};
+export type NewEvent = Pick<LocalEvent, 'id' | 'family_id' | 'baby_id' | 'author_id' | 'kind' | 'started_at' | 'ended_at' | 'note'> & {
+  data: Record<string, unknown>;
+};
+
+export function listEvents(babyId: string, sinceIso: string): LocalEvent[] {
+  return db.getAllSync<LocalEvent>(
+    `select * from tracker_events where baby_id = ? and started_at >= ? and status != 'deleting' order by started_at desc`,
+    babyId, sinceIso,
+  );
+}
+
+export function latestEvent(babyId: string, kind: EventKind): LocalEvent | null {
+  return db.getFirstSync<LocalEvent>(
+    `select * from tracker_events where baby_id = ? and kind = ? and status != 'deleting' order by started_at desc limit 1`,
+    babyId, kind,
+  );
+}
+
+export function insertEvent(e: NewEvent) {
+  db.runSync(
+    `insert into tracker_events (id, family_id, baby_id, author_id, kind, started_at, ended_at, data, note, status)
+     values (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+    e.id, e.family_id, e.baby_id, e.author_id, e.kind, e.started_at, e.ended_at, JSON.stringify(e.data), e.note,
+  );
+  changed();
+}
+
+export function endEvent(id: string, endedAt: string) {
+  db.runSync(
+    `update tracker_events set ended_at = ?, status = 'pending', attempts = 0, next_attempt_at = 0 where id = ? and status != 'deleting'`,
+    endedAt, id,
+  );
+  changed();
+}
+
+export function markEventDeleting(id: string) {
+  db.runSync(`update tracker_events set status = 'deleting', attempts = 0, next_attempt_at = 0 where id = ?`, id);
+  changed();
+}
+
+export function removeEventLocal(id: string) {
+  db.runSync(`delete from tracker_events where id = ?`, id);
+  changed();
+}
+
+export function queuedEvents(): LocalEvent[] {
+  return db.getAllSync<LocalEvent>(`select * from tracker_events where status != 'synced' order by started_at`);
+}
+
+export function markEventSynced(id: string) {
+  db.runSync(`update tracker_events set status = 'synced', attempts = 0, next_attempt_at = 0, last_error = null where id = ? and status = 'pending'`, id);
+  changed();
+}
+
+export function markEventFailed(id: string, error: string, attempts: number, nextAttemptAt: number) {
+  db.runSync(`update tracker_events set attempts = ?, next_attempt_at = ?, last_error = ? where id = ?`, attempts, nextAttemptAt, error.slice(0, 500), id);
+  changed();
+}
+
+export type RemoteEvent = Pick<LocalEvent, 'id' | 'family_id' | 'baby_id' | 'author_id' | 'kind' | 'started_at' | 'ended_at' | 'note'> & {
+  data: unknown;
+};
+
+// Same rules as memories: never overwrite unsynced local changes; prune only inside the pulled window.
+export function mergeRemoteEvents(babyId: string, rows: RemoteEvent[], sinceIso: string) {
+  db.withTransactionSync(() => {
+    for (const r of rows) {
+      db.runSync(
+        `insert into tracker_events (id, family_id, baby_id, author_id, kind, started_at, ended_at, data, note, status)
+         values (?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')
+         on conflict (id) do update set kind = excluded.kind, started_at = excluded.started_at,
+           ended_at = excluded.ended_at, data = excluded.data, note = excluded.note
+         where tracker_events.status = 'synced'`,
+        r.id, r.family_id, r.baby_id, r.author_id, r.kind, r.started_at, r.ended_at, JSON.stringify(r.data ?? {}), r.note,
+      );
+    }
+    const keep = new Set(rows.map((r) => r.id));
+    for (const { id } of db.getAllSync<{ id: string }>(
+      `select id from tracker_events where baby_id = ? and status = 'synced' and started_at >= ?`, babyId, sinceIso,
+    )) {
+      if (!keep.has(id)) db.runSync(`delete from tracker_events where id = ?`, id);
+    }
+  });
+  changed();
 }

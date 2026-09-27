@@ -44,7 +44,7 @@ export default function FamilyScreen() {
   useFocusEffect(load);
 
   async function saveName() {
-    const { error } = await supabase.from('profiles').update({ display_name: myName.trim() || null }).eq('id', me!);
+    const { error } = await supabase.from('profiles').update({ display_name: myName.trim() || null }).eq('id', me ?? '');
     setMessage(error ? 'Could not save your name.' : 'Saved.');
     load();
   }
