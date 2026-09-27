@@ -63,7 +63,7 @@ async function push(m: local.LocalMemory) {
   if (m.raw_text) {
     supabase.functions
       .invoke('ai-journal', { body: { memory_id: m.id } })
-      .then(({ data }) => (data?.status === 'done' ? pull(m.baby_id) : undefined))
+      .then(({ data }) => (data?.status === 'done' ? syncNow(m.baby_id) : undefined))
       .catch(() => undefined);
   }
 }
@@ -77,6 +77,8 @@ async function remove(m: local.LocalMemory) {
   local.removeLocal(m.id);
 }
 
+// Only called inside syncNow: a pull racing a push could prune a just-synced memory
+// and delete its device-only original.
 async function pull(babyId: string) {
   const { data, error } = await supabase
     .from('memories')
@@ -143,5 +145,5 @@ export async function dismissMilestone(m: local.LocalMemory) {
 export async function discardStory(m: local.LocalMemory) {
   const { error } = await supabase.from('memories').update({ story_text: null }).eq('id', m.id);
   if (error) throw error;
-  await pull(m.baby_id);
+  await syncNow(m.baby_id);
 }

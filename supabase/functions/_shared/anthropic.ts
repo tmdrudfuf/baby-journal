@@ -10,7 +10,7 @@ export function anthropicProvider(apiKey: string, model: string): AiProvider {
     async journal(input) {
       const response = await client.beta.messages.create({
         model,
-        max_tokens: 1024,
+        max_tokens: 4096, // thinking tokens count against this
         betas: ['server-side-fallback-2026-07-01'],
         fallbacks: 'default',
         system: JOURNAL_SYSTEM,
@@ -24,6 +24,7 @@ export function anthropicProvider(apiKey: string, model: string): AiProvider {
         outputTokens: response.usage.output_tokens,
       };
       if (response.stop_reason === 'refusal') return { result: { story: null, milestone: null }, usage };
+      if (response.stop_reason === 'max_tokens') throw new Error('response truncated');
       const text = response.content.find((b) => b.type === 'text');
       if (!text || text.type !== 'text') throw new Error('no text in response');
       return { result: JSON.parse(text.text) as JournalSuggestion, usage };
