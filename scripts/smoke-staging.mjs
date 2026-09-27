@@ -1,5 +1,5 @@
 // Staging E2E smoke (npm run smoke:staging): user -> family -> baby -> memory -> R2 upload/download.
-// Needs `npx supabase login` + `npx wrangler login`. Never prints keys. Cleans up after itself.
+// Needs `npx supabase login`. Never prints keys. Cleans up after itself.
 import { execSync } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
 
@@ -45,20 +45,25 @@ try {
 
   const [asset] = await as('/rest/v1/memory_assets', { method: 'POST', headers: { Prefer: 'return=representation' },
     body: { memory_id: memoryId, family_id: familyId, object_key: up.object_key, asset_type: 'photo', mime_type: up.content_type, variant: 'display', bytes: payload.length } });
-  const down = await as('/functions/v1/media-sign', { method: 'POST', body: { action: 'download', asset_id: asset.id } });
-  const got = Buffer.from(await (await fetch(down.url)).arrayBuffer());
+  const down = await as('/functions/v1/media-sign', { method: 'POST', body: { action: 'download', asset_ids: [asset.id] } });
+  const signedUrl = down.urls[asset.id];
+  const got = Buffer.from(await (await fetch(signedUrl)).arrayBuffer());
   if (!got.equals(payload)) throw new Error('downloaded bytes differ');
   console.log('3. downloaded via signed URL, bytes match');
 
-  const unsigned = await fetch(down.url.split('?')[0]);
+  const unsigned = await fetch(signedUrl.split('?')[0]);
   console.log(`4. unsigned URL denied: ${unsigned.status}`);
 
-  const anonSign = await fetch(URL + '/functions/v1/media-sign', { method: 'POST', headers: { apikey: anon, Authorization: `Bearer ${anon}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'download', asset_id: asset.id }) });
-  console.log(`5. anon download sign denied: ${anonSign.status}`);
+  const anonSign = await fetch(URL + '/functions/v1/media-sign', { method: 'POST', headers: { apikey: anon, Authorization: `Bearer ${anon}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'download', asset_ids: [asset.id] }) });
+  const anonUrls = anonSign.ok ? (await anonSign.json()).urls ?? {} : {};
+  if (asset.id in anonUrls) throw new Error('anon got a signed URL');
+  console.log(`5. anon got no signed URL (status ${anonSign.status})`);
 
-  // cleanup R2 object via a presigned DELETE isn't exposed; use wrangler.
-  execSync(`npx wrangler r2 object delete baby-journal-media-staging/${up.object_key} --remote`, { stdio: 'ignore' });
-  console.log('6. R2 object deleted');
+  await as(`/rest/v1/memories?id=eq.${memoryId}`, { method: 'DELETE' });
+  const purge = await as('/functions/v1/media-sign', { method: 'POST', body: { action: 'purge' } });
+  const gone = await fetch(signedUrl);
+  if (gone.ok) throw new Error('object still readable after delete + purge');
+  console.log(`6. memory deleted, purge removed ${purge.deleted} object(s), media now ${gone.status}`);
 } finally {
   if (familyId) await call(`/rest/v1/families?id=eq.${familyId}`, { method: 'DELETE', token: service, key: service });
   await call(`/auth/v1/admin/users/${user.id}`, { method: 'DELETE', token: service, key: service });

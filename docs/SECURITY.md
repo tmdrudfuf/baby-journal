@@ -28,4 +28,4 @@
 - Presigned PUT cannot cap object size → quota enforcement at asset-row insert (M8).
 - Owner can demote/remove themselves leaving an ownerless family → guard in M3 (roles).
 - Rate limiting on edge functions → before staging launch.
-- Memory delete cascades asset rows but leaves R2 objects → object deletion (§37, §52) in M1.
+- R2 object purge runs when a client calls `media-sign` purge after deletes; add a scheduled drain before launch.

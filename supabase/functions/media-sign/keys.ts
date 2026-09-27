@@ -10,6 +10,7 @@ export const EXTENSIONS: Record<string, string> = {
   m4a: 'audio/mp4',
 };
 export const URL_TTL_SECONDS = 300;
+export const MAX_BATCH = 100;
 
 export type UploadRequest = { family_id: string; memory_id: string; variant: string; ext: string };
 

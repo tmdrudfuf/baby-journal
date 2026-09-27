@@ -18,6 +18,7 @@ Never rely on conversation history. If a decision matters, write it into the rep
 - Migrations are append-only: staging exists. Add a new migration; never edit an applied one. Deploy with `npx supabase db push` (linked project, password `SUPABASE_STAGING_DB_PASSWORD` in local `.env`).
 - Logical commits; push each finished step to `origin/main` while the project is pre-release.
 - Never commit secrets. Only `.env.example` is tracked.
+- Never ask the human whether to start or continue the next step/milestone. Keep working through the masterplan until genuinely blocked.
 - Interrupt the human only per masterplan §5 (auth, payment, legal, identity, irreversible prod, product decisions, physical device), using the WHY / ACTION / VERIFY / NEXT format.
 
 ## Gate (run before every commit)

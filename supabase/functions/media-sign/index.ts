@@ -1,12 +1,13 @@
 // Issues short-lived R2 URLs. Authorization is decided by Postgres RLS using the caller's JWT;
 // R2 credentials never leave this function (§27, §36).
 //
-// POST { action: 'upload', memory_id, variant, ext }            -> { url, object_key, expires_in }
-// POST { action: 'download', asset_id }                         -> { url, expires_in }
+// POST { action: 'upload', memory_id, variant, ext } -> { url, object_key, content_type, expires_in }
+// POST { action: 'download', asset_ids: uuid[] }     -> { urls: { [asset_id]: url }, expires_in }
+// POST { action: 'purge' }                           -> { deleted }  (drains media_deletions)
 import { AwsClient } from 'npm:aws4fetch@1.0.20';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-import { EXTENSIONS, URL_TTL_SECONDS, isUuid, uploadKey } from './keys.ts';
+import { EXTENSIONS, MAX_BATCH, URL_TTL_SECONDS, isUuid, uploadKey } from './keys.ts';
 
 const env = (name: string) => {
   const value = Deno.env.get(name);
@@ -48,10 +49,14 @@ Deno.serve(async (req) => {
   }
 
   if (body.action === 'download') {
-    if (!isUuid(body.asset_id)) return json({ error: 'invalid asset_id' }, 400);
-    const { data } = await db.from('memory_assets').select('object_key').eq('id', body.asset_id).maybeSingle();
-    if (!data) return json({ error: 'not found' }, 404);
-    return json({ url: await presign('GET', data.object_key), expires_in: URL_TTL_SECONDS });
+    const ids = body.asset_ids;
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length > MAX_BATCH || !ids.every(isUuid)) {
+      return json({ error: 'invalid asset_ids' }, 400);
+    }
+    const { data } = await db.from('memory_assets').select('id, object_key').in('id', ids);
+    const urls: Record<string, string> = {};
+    for (const row of data ?? []) urls[row.id] = await presign('GET', row.object_key);
+    return json({ urls, expires_in: URL_TTL_SECONDS });
   }
 
   if (body.action === 'upload') {
@@ -73,6 +78,22 @@ Deno.serve(async (req) => {
       content_type: EXTENSIONS[body.ext as string],
       expires_in: URL_TTL_SECONDS,
     });
+  }
+
+  if (body.action === 'purge') {
+    // Callable by any signed-in user: it only removes objects whose rows are already gone.
+    const { data: user } = await db.auth.getUser();
+    if (!user.user) return json({ error: 'unauthorized' }, 401);
+    const admin = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
+    const { data: queued } = await admin.from('media_deletions').select('object_key').limit(MAX_BATCH);
+    const done: string[] = [];
+    for (const { object_key } of queued ?? []) {
+      // R2 returns 204 for missing objects, so retries are safe.
+      const res = await r2.fetch(`${bucketUrl}/${object_key}`, { method: 'DELETE' });
+      if (res.ok) done.push(object_key);
+    }
+    if (done.length) await admin.from('media_deletions').delete().in('object_key', done);
+    return json({ deleted: done.length });
   }
 
   return json({ error: 'unknown action' }, 400);
