@@ -1,6 +1,7 @@
 // Mirrors the local store to Supabase + R2. Safe to call any time; every step is idempotent.
 import { File, UploadType } from 'expo-file-system';
 
+import { localDayKey } from '@/lib/dates';
 import * as local from '@/lib/local-db';
 import { deleteLocalFiles } from '@/lib/media';
 import { supabase } from '@/lib/supabase';
@@ -58,6 +59,13 @@ async function push(m: local.LocalMemory) {
     display: assets?.find((a) => a.variant === 'display')?.id,
     thumbnail: assets?.find((a) => a.variant === 'thumbnail')?.id,
   });
+  // AI suggestions are optional and never block the memory (§54): fire and forget.
+  if (m.raw_text) {
+    supabase.functions
+      .invoke('ai-journal', { body: { memory_id: m.id } })
+      .then(({ data }) => (data?.status === 'done' ? pull(m.baby_id) : undefined))
+      .catch(() => undefined);
+  }
 }
 
 async function remove(m: local.LocalMemory) {
@@ -72,7 +80,7 @@ async function remove(m: local.LocalMemory) {
 async function pull(babyId: string) {
   const { data, error } = await supabase
     .from('memories')
-    .select('id, family_id, baby_id, author_id, occurred_at, type, raw_text, memory_assets(id, variant)')
+    .select('id, family_id, baby_id, author_id, occurred_at, type, raw_text, story_text, milestone_candidate, milestone_title, memory_assets(id, variant)')
     .eq('baby_id', babyId)
     .order('occurred_at', { ascending: false })
     .limit(PULL_LIMIT);
@@ -110,4 +118,30 @@ export function syncNow(babyId: string | undefined, { force = false } = {}): Pro
     }
   })();
   return running;
+}
+
+// Milestone + story decisions need the server (they are family-visible). Online only for now.
+// ponytail: queue these offline like memories if parents often decide without signal.
+export async function confirmMilestone(m: local.LocalMemory, title: string) {
+  const { error } = await supabase.from('milestones').insert({
+    family_id: m.family_id,
+    baby_id: m.baby_id,
+    memory_id: m.id,
+    title,
+    occurred_on: localDayKey(new Date(m.occurred_at)),
+  });
+  if (error && error.code !== '23505') throw error; // already saved is fine
+  await dismissMilestone(m);
+}
+
+export async function dismissMilestone(m: local.LocalMemory) {
+  const { error } = await supabase.from('memories').update({ milestone_candidate: false }).eq('id', m.id);
+  if (error) throw error;
+  local.clearMilestone(m.id);
+}
+
+export async function discardStory(m: local.LocalMemory) {
+  const { error } = await supabase.from('memories').update({ story_text: null }).eq('id', m.id);
+  if (error) throw error;
+  await pull(m.baby_id);
 }

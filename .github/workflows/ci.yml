@@ -40,7 +40,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: for f in supabase/functions/*/; do deno check --config "$f/deno.json" "$f/index.ts"; done
+      - run: for f in supabase/functions/*/index.ts; do deno check --config "$(dirname "$f")/deno.json" "$f"; done
 
   secrets:
     runs-on: ubuntu-latest

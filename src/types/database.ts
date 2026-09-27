@@ -23,7 +23,26 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "babies": {
+            "ai_usage": {
+                  Row: {
+                    "created_at": string,"est_cost_usd": number,"family_id": string | null,"feature": string,"id": number,"input_tokens": number,"latency_ms": number,"model": string,"ok": boolean,"output_tokens": number,"provider": string,"user_id": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"est_cost_usd"?: number,"family_id"?: string | null,"feature": string,"id"?: never,"input_tokens"?: number,"latency_ms"?: number,"model": string,"ok": boolean,"output_tokens"?: number,"provider": string,"user_id"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"est_cost_usd"?: number,"family_id"?: string | null,"feature"?: string,"id"?: never,"input_tokens"?: number,"latency_ms"?: number,"model"?: string,"ok"?: boolean,"output_tokens"?: number,"provider"?: string,"user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ai_usage_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"babies": {
                   Row: {
                     "birth_date": string | null,"created_at": string,"family_id": string,"id": string,"name": string
                   }
@@ -108,13 +127,13 @@ isOneToOne: false
                   ]
                 },"memories": {
                   Row: {
-                    "author_id": string | null,"baby_id": string,"created_at": string,"family_id": string,"id": string,"milestone_candidate": boolean,"occurred_at": string,"raw_text": string | null,"story_text": string | null,"type": string,"updated_at": string,"visibility": string
+                    "ai_input_hash": string | null,"ai_status": string | null,"author_id": string | null,"baby_id": string,"created_at": string,"family_id": string,"id": string,"milestone_candidate": boolean,"milestone_title": string | null,"occurred_at": string,"raw_text": string | null,"story_text": string | null,"type": string,"updated_at": string,"visibility": string
                   }
                   Insert: {
-                    "author_id"?: string | null,"baby_id": string,"created_at"?: string,"family_id": string,"id"?: string,"milestone_candidate"?: boolean,"occurred_at"?: string,"raw_text"?: string | null,"story_text"?: string | null,"type"?: string,"updated_at"?: string,"visibility"?: string
+                    "ai_input_hash"?: string | null,"ai_status"?: string | null,"author_id"?: string | null,"baby_id": string,"created_at"?: string,"family_id": string,"id"?: string,"milestone_candidate"?: boolean,"milestone_title"?: string | null,"occurred_at"?: string,"raw_text"?: string | null,"story_text"?: string | null,"type"?: string,"updated_at"?: string,"visibility"?: string
                   }
                   Update: {
-                    "author_id"?: string | null,"baby_id"?: string,"created_at"?: string,"family_id"?: string,"id"?: string,"milestone_candidate"?: boolean,"occurred_at"?: string,"raw_text"?: string | null,"story_text"?: string | null,"type"?: string,"updated_at"?: string,"visibility"?: string
+                    "ai_input_hash"?: string | null,"ai_status"?: string | null,"author_id"?: string | null,"baby_id"?: string,"created_at"?: string,"family_id"?: string,"id"?: string,"milestone_candidate"?: boolean,"milestone_title"?: string | null,"occurred_at"?: string,"raw_text"?: string | null,"story_text"?: string | null,"type"?: string,"updated_at"?: string,"visibility"?: string
                   }
                   Relationships: [
                     {
@@ -138,6 +157,31 @@ isOneToOne: false
                   Relationships: [
                     {
       foreignKeyName: "memory_assets_memory_id_family_id_fkey"
+      columns: ["memory_id","family_id"]
+isOneToOne: false
+      referencedRelation: "memories"
+      referencedColumns: ["id","family_id"]
+    }
+                  ]
+                },"milestones": {
+                  Row: {
+                    "baby_id": string,"created_at": string,"created_by": string | null,"family_id": string,"id": string,"memory_id": string | null,"occurred_on": string,"title": string
+                  }
+                  Insert: {
+                    "baby_id": string,"created_at"?: string,"created_by"?: string | null,"family_id": string,"id"?: string,"memory_id"?: string | null,"occurred_on": string,"title": string
+                  }
+                  Update: {
+                    "baby_id"?: string,"created_at"?: string,"created_by"?: string | null,"family_id"?: string,"id"?: string,"memory_id"?: string | null,"occurred_on"?: string,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "milestones_baby_id_family_id_fkey"
+      columns: ["baby_id","family_id"]
+isOneToOne: false
+      referencedRelation: "babies"
+      referencedColumns: ["id","family_id"]
+    },{
+      foreignKeyName: "milestones_memory_id_family_id_fkey"
       columns: ["memory_id","family_id"]
 isOneToOne: false
       referencedRelation: "memories"

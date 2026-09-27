@@ -21,6 +21,9 @@ export type LocalMemory = {
   attempts: number;
   next_attempt_at: number;
   last_error: string | null;
+  story_text: string | null; // AI suggestion; raw_text is never changed by AI
+  milestone_candidate: number; // 0/1 (SQLite)
+  milestone_title: string | null;
 };
 
 const db = openDatabaseSync('journal.db');
@@ -48,6 +51,18 @@ db.execSync(`
   create index if not exists memories_baby_time on memories (baby_id, occurred_at desc);
 `);
 
+// Additive local schema changes, keyed by user_version.
+const LOCAL_MIGRATIONS = [
+  `alter table memories add column story_text text;
+   alter table memories add column milestone_candidate integer not null default 0;
+   alter table memories add column milestone_title text;`,
+];
+const localVersion = db.getFirstSync<{ user_version: number }>('pragma user_version')?.user_version ?? 0;
+LOCAL_MIGRATIONS.slice(localVersion).forEach((sql, i) => {
+  db.execSync(sql);
+  db.execSync(`pragma user_version = ${localVersion + i + 1}`);
+});
+
 // Tiny change feed so screens re-query after writes or sync.
 const listeners = new Set<() => void>();
 let version = 0;
@@ -71,7 +86,9 @@ export function getMemory(id: string): LocalMemory | null {
   return db.getFirstSync<LocalMemory>(`select * from memories where id = ?`, id);
 }
 
-export function insertMemory(m: Omit<LocalMemory, 'status' | 'attempts' | 'next_attempt_at' | 'last_error' | 'display_asset_id' | 'thumb_asset_id'>) {
+type NewMemory = Pick<LocalMemory, 'id' | 'family_id' | 'baby_id' | 'author_id' | 'occurred_at' | 'type' | 'raw_text' | 'photo_path' | 'thumb_path' | 'original_path'>;
+
+export function insertMemory(m: NewMemory) {
   db.runSync(
     `insert into memories (id, family_id, baby_id, author_id, occurred_at, type, raw_text, photo_path, thumb_path, original_path, status)
      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
@@ -85,6 +102,12 @@ export function updateText(id: string, rawText: string) {
     `update memories set raw_text = ?, status = 'pending', attempts = 0, next_attempt_at = 0 where id = ? and status != 'deleting'`,
     rawText, id,
   );
+  changed();
+}
+
+// Local echo of a milestone decision; the server write happens in sync.ts.
+export function clearMilestone(id: string) {
+  db.runSync(`update memories set milestone_candidate = 0 where id = ?`, id);
   changed();
 }
 
@@ -124,7 +147,7 @@ export function markFailed(id: string, error: string, attempts: number, nextAtte
   changed();
 }
 
-export type RemoteMemory = Pick<LocalMemory, 'id' | 'family_id' | 'baby_id' | 'author_id' | 'occurred_at' | 'type' | 'raw_text' | 'display_asset_id' | 'thumb_asset_id'>;
+export type RemoteMemory = Pick<LocalMemory, 'id' | 'family_id' | 'baby_id' | 'author_id' | 'occurred_at' | 'type' | 'raw_text' | 'display_asset_id' | 'thumb_asset_id' | 'story_text' | 'milestone_title'> & { milestone_candidate: boolean };
 
 // Server rows never overwrite local edits that haven't synced yet.
 // Returns ids removed locally so the caller can delete their files.
@@ -133,13 +156,15 @@ export function mergeRemote(babyId: string, rows: RemoteMemory[], complete: bool
   db.withTransactionSync(() => {
     for (const r of rows) {
       db.runSync(
-        `insert into memories (id, family_id, baby_id, author_id, occurred_at, type, raw_text, display_asset_id, thumb_asset_id, status)
-         values (?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')
+        `insert into memories (id, family_id, baby_id, author_id, occurred_at, type, raw_text, display_asset_id, thumb_asset_id, story_text, milestone_candidate, milestone_title, status)
+         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')
          on conflict (id) do update set
            occurred_at = excluded.occurred_at, type = excluded.type, raw_text = excluded.raw_text,
-           display_asset_id = excluded.display_asset_id, thumb_asset_id = excluded.thumb_asset_id
+           display_asset_id = excluded.display_asset_id, thumb_asset_id = excluded.thumb_asset_id,
+           story_text = excluded.story_text, milestone_candidate = excluded.milestone_candidate, milestone_title = excluded.milestone_title
          where memories.status = 'synced'`,
         r.id, r.family_id, r.baby_id, r.author_id, r.occurred_at, r.type, r.raw_text, r.display_asset_id, r.thumb_asset_id,
+        r.story_text, r.milestone_candidate ? 1 : 0, r.milestone_title,
       );
     }
     // Deleted elsewhere (e.g. by another family member): drop our synced copy.

@@ -4,11 +4,11 @@ import { Alert } from 'react-native';
 
 import { MemoryImage } from '@/components/memory-image';
 import { SyncBadge } from '@/components/sync-badge';
-import { Button, Field, Screen, Text } from '@/components/ui';
+import { Button, Card, Field, Screen, Text } from '@/components/ui';
 import { Radius } from '@/constants/theme';
 import { formatDate, formatTime } from '@/lib/dates';
 import { getMemory, markDeleting, updateText, useLocal } from '@/lib/local-db';
-import { syncNow } from '@/lib/sync';
+import { confirmMilestone, discardStory, dismissMilestone, syncNow } from '@/lib/sync';
 import { useApp } from '@/state/app';
 
 export default function MemoryScreen() {
@@ -16,6 +16,7 @@ export default function MemoryScreen() {
   const { baby, session } = useApp();
   const memory = useLocal(() => getMemory(id));
   const [draft, setDraft] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   if (!memory || memory.status === 'deleting') {
     return (
@@ -32,6 +33,15 @@ export default function MemoryScreen() {
     updateText(memory!.id, draft!.trim());
     setDraft(null);
     syncNow(baby?.id);
+  }
+
+  async function act(fn: () => Promise<void>) {
+    setAiError(null);
+    try {
+      await fn();
+    } catch {
+      setAiError('Could not save that choice. Check your connection and try again.');
+    }
   }
 
   function confirmDelete() {
@@ -70,6 +80,27 @@ export default function MemoryScreen() {
           <Button variant="ghost" label="Cancel" onPress={() => setDraft(null)} />
         </>
       )}
+      {canEdit && memory.milestone_candidate === 1 && memory.milestone_title && (
+        <Card accessibilityRole="summary">
+          <Text variant="caption" color="textSecondary">
+            Possible milestone ✨
+          </Text>
+          <Text variant="title">{memory.milestone_title}</Text>
+          <Text color="textSecondary">{formatDate(memory.occurred_at)}</Text>
+          <Button label="Save milestone" variant="accent" onPress={() => act(() => confirmMilestone(memory, memory.milestone_title!))} />
+          <Button label="Not a milestone" variant="ghost" onPress={() => act(() => dismissMilestone(memory))} />
+        </Card>
+      )}
+      {memory.story_text && (
+        <Card>
+          <Text variant="caption" color="textSecondary">
+            Suggested for your journal
+          </Text>
+          <Text>{memory.story_text}</Text>
+          {canEdit && <Button label="Discard suggestion" variant="ghost" onPress={() => act(() => discardStory(memory))} />}
+        </Card>
+      )}
+      {aiError && <Text color="textSecondary">{aiError}</Text>}
       {canEdit && <Button variant="ghost" label="Delete memory" onPress={confirmDelete} />}
     </Screen>
   );
