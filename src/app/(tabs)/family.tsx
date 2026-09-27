@@ -176,7 +176,7 @@ export default function FamilyScreen() {
   function confirmDeleteAccount() {
     Alert.alert(
       'Delete your account?',
-      'Families you alone own are deleted with all their memories and photos. In families with another owner you simply leave.',
+      'Your login is removed and you leave your family. Everyone else keeps the journal: if you are the only owner, ownership passes to the next parent or caregiver. A family with nobody else in it is deleted with all its memories and photos.',
       [
         { text: 'Cancel', style: 'cancel' },
         {

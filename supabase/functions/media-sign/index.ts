@@ -105,6 +105,9 @@ Deno.serve(async (req) => {
   }
 
   // Per-user limits (§36, §42). 429 is retryable, so the app's upload queue simply backs off.
+  // The scheduled sweep (pg_cron, service role) may only purge.
+  if (body.action === 'purge' && jwtRole(req) === 'service_role') return json({ deleted: await purgeQueue() });
+
   const limit = LIMITS[String(body.action)];
   if (limit && jwtRole(req) !== 'authenticated') return json({ error: 'unauthorized' }, 401);
   if (limit) {
@@ -232,8 +235,11 @@ Deno.serve(async (req) => {
     const me = auth.user?.id;
     if (!me) return json({ error: 'unauthorized' }, 401);
     const admin = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
-    // Families this user alone owns are deleted with everything in them. In families with another
-    // owner, the user just leaves; memories they wrote there stay with that family (author cleared).
+    // Nobody else's memories are ever deleted with this account (§32, §54):
+    // - family with another owner: the user just leaves;
+    // - sole owner but other members: ownership passes to the highest-ranked member (earliest joined first);
+    // - nobody else in the family: the family is deleted with everything in it.
+    // Memories the user wrote in remaining families stay there with the author cleared.
     const { data: owned } = await admin
       .from('family_members')
       .select('family_id')
@@ -241,16 +247,24 @@ Deno.serve(async (req) => {
       .eq('role', 'owner')
       .is('revoked_at', null);
     for (const { family_id } of owned ?? []) {
-      const { count } = await admin
+      const { data: others } = await admin
         .from('family_members')
-        .select('user_id', { count: 'exact', head: true })
+        .select('user_id, role')
         .eq('family_id', family_id)
-        .eq('role', 'owner')
         .is('revoked_at', null)
-        .neq('user_id', me);
-      if (!count) {
+        .neq('user_id', me)
+        .order('role', { ascending: false }) // enum order: owner > caregiver > contributor > viewer
+        .order('created_at', { ascending: true });
+      if (!others?.length) {
         const { error } = await admin.from('families').delete().eq('id', family_id);
         if (error) return json({ error: 'could not delete family' }, 500);
+      } else if (others[0].role !== 'owner') {
+        const { error } = await admin
+          .from('family_members')
+          .update({ role: 'owner' })
+          .eq('family_id', family_id)
+          .eq('user_id', others[0].user_id);
+        if (error) return json({ error: 'could not hand over the family' }, 500);
       }
     }
     const { error } = await admin.auth.admin.deleteUser(me); // cascades profile + memberships

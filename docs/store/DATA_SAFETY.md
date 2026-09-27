@@ -9,7 +9,7 @@ they are legal declarations.**
 |---|---|
 | Does the app collect or share user data? | Collects: yes. Shares: no (service providers acting on our behalf are not "sharing" under Play's definition) |
 | Is data encrypted in transit? | Yes (HTTPS/TLS everywhere) |
-| Can users request deletion? | Yes — in the app (Family → Privacy → Delete my account) |
+| Can users request deletion? | Yes — in the app (Family → Privacy → Delete my account) and on the web (site/delete-account.html). Shared family journals are kept for the remaining members (content the user added stays, without their name). |
 | Committed to Play Families policy? | Review needed: the app is for adult caregivers but stores information about children |
 
 ## Data types collected

@@ -30,6 +30,7 @@ advertising IDs, analytics about journal content. There is no advertising and no
 
 - Memories and photos are kept on the phone until uploaded; the original camera photo stays on the phone.
 - Sign-out wipes the local database, photo files and the daily reminder.
+- Deleted photos are removed from R2 immediately, and a sweep every 15 minutes retries anything that could not be removed at once.
 - Losing access to a family removes that family's synced data from the phone.
 
 ## Deletion and control
@@ -38,7 +39,7 @@ advertising IDs, analytics about journal content. There is no advertising and no
 |---|---|---|
 | Delete a memory | Memory screen | Row deleted; R2 photos queued and purged |
 | Delete the family (owner) | Family → Privacy | Everything in the family, including photos |
-| Delete my account | Family → Privacy | Families you alone own are deleted with all content; in shared families you leave and your memories stay with the family (author cleared); your login is removed |
+| Delete my account | Family → Privacy, or site/delete-account.html | Login + profile removed. A family with no other members is deleted with all content. Families other people belong to are kept: you leave, ownership passes to the highest-ranked member if you were the only owner, your memories stay with the family (author cleared) |
 | Remove a member (owner) | Family → Members | They lose access immediately |
 | Download my data | Family → Privacy | Zip with journal.json, a readable index.html and photos, built from what you can see; stored under `exports/` in R2 and auto-deleted after 1 day |
 
