@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Alert, Share, View } from 'react-native';
 
 import { Button, Card, Field, Screen, Text } from '@/components/ui';
@@ -39,9 +40,8 @@ export default function FamilyScreen() {
       });
   }, [baby.family_id, me]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Tabs stay mounted; refresh whenever the tab is shown (someone may have joined).
+  useFocusEffect(load);
 
   async function saveName() {
     const { error } = await supabase.from('profiles').update({ display_name: myName.trim() || null }).eq('id', me!);
@@ -61,15 +61,25 @@ export default function FamilyScreen() {
     });
   }
 
+  // Android alerts show at most three buttons, so role changes are a second step.
   function manage(m: Member) {
     const name = m.profiles?.display_name || 'this member';
     Alert.alert(name, ROLE_LABEL[m.role], [
-      ...(['owner', ...INVITABLE] as Role[])
-        .filter((r) => r !== m.role)
-        .map((r) => ({ text: `Make ${ROLE_LABEL[r].toLowerCase()}`, onPress: () => update(m, { role: r }) })),
-      { text: 'Remove from family', style: 'destructive' as const, onPress: () => update(m, { revoked_at: new Date().toISOString() }) },
-      { text: 'Cancel', style: 'cancel' as const },
+      { text: 'Change role', onPress: () => pickRole(m, name) },
+      { text: 'Remove from family', style: 'destructive', onPress: () => update(m, { revoked_at: new Date().toISOString() }) },
+      { text: 'Cancel', style: 'cancel' },
     ]);
+  }
+
+  function pickRole(m: Member, name: string) {
+    Alert.alert(
+      `Change ${name}'s role`,
+      undefined,
+      (['owner', ...INVITABLE] as Role[])
+        .filter((r) => r !== m.role)
+        .map((r) => ({ text: ROLE_LABEL[r], onPress: () => update(m, { role: r }) })),
+      { cancelable: true },
+    );
   }
 
   async function update(m: Member, patch: { role?: Role; revoked_at?: string }) {

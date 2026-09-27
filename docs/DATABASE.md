@@ -13,6 +13,9 @@ Migrations: `supabase/migrations/`. Tests: `supabase/tests/database/` (pgTAP, `n
 | `memories` | §35 fields; `(baby_id, family_id)` FK guarantees the baby is in the same family |
 | `memory_assets` | R2 object metadata; `(memory_id, family_id)` FK; key must start with `families/{family_id}/memories/{memory_id}/` |
 | `invitations` | SHA-256 token hash, role (never owner), expiry, single use |
+| `comments`, `reactions` | Family-visible engagement; **viewers may comment and react** (product decision), never on others' private memories |
+| `milestones` | Confirmed milestones; survive memory deletion (link set null) |
+| `ai_usage` | AI cost telemetry; service role only |
 | `media_deletions` | R2 keys queued by an `AFTER DELETE` trigger on `memory_assets`; drained by `media-sign` purge; service role only |
 
 Remaining §34 entities (milestones, tracker_events, comments, reactions, stories, subscriptions, entitlements, ai_jobs, storage_usage, audit_events, …) are added in the milestone that uses them.
@@ -27,6 +30,9 @@ Remaining §34 entities (milestones, tracker_events, comments, reactions, storie
 | Create memory / assets | contributor (own memories) |
 | Edit/delete others' memories, manage babies, invite | caregiver |
 | Rename/delete family, change member roles | owner |
+| Comment, heart | viewer |
+
+A family always keeps at least one active owner (constraint trigger `family_members_keep_owner`).
 
 `private` visibility memories are readable only by their author.
 

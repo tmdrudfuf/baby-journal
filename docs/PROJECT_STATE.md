@@ -5,6 +5,7 @@ _Last updated: 2026-09-26_
 ## Current milestone
 M1 — Magic Journal: code complete, emulator-verified against staging; waiting on physical-device test.
 M2 — AI Journal: built and deployed to staging; inactive until an Anthropic API key is set (falls back to no suggestions).
+M3 — Family: built, deployed, verified with two accounts (script + emulator). Needs a two-device human check to close.
 
 ## Completed milestones
 - M0 — Foundation (closed 2026-09-26)
@@ -19,11 +20,13 @@ M2 — AI Journal: built and deployed to staging; inactive until an Anthropic AP
 - [ ] Physical-device test by human (preview APK: https://expo.dev/artifacts/eas/VOIahyJk_4jJdBgk9Dx-GaK5BXWdHbhjaK1y1iQCZFA.apk, M1 code)
 - [x] M2: provider abstraction, ai-journal function, milestones table, cost telemetry, daily cap, confirm/dismiss UI (emulator-verified with seeded suggestion)
 - [ ] M2: live AI run (needs ANTHROPIC_API_KEY on staging)
-- [ ] Growth (M4) and Family invites (M3) tabs are placeholders
+- [x] M3: invite codes, join flow, roles (owner manage/remove, last-owner guard), comments + hearts with realtime, Recorded by, viewer gating
+- [x] M3 E2E: `npm run e2e:family` (invite, join, viewer can engage but not write, unrelated user sees nothing, revoke) + emulator (live comment, remove member)
+- [ ] Growth tab (M4) is a placeholder
 
 ## Known issues
 - Staging requires email confirmation for sign-up (Supabase default). Confirmation mail links point at `http://localhost:3000` but still confirm the account. Needs a decision: turn off "Confirm email" for staging, or add custom SMTP + deep link before launch.
-- Memory edit/delete UI only for the author; caregiver editing others' memories comes with roles UI (M3).
+- Invites are shared as a code (no deep link yet). Comments/hearts/milestone decisions are online-only.
 - Pull fetches the newest 500 memories per baby (pagination later).
 - See docs/SECURITY.md "Known gaps".
 
@@ -42,7 +45,7 @@ M2 — AI Journal: built and deployed to staging; inactive until an Anthropic AP
 Done: Supabase, Cloudflare (wrangler), Expo (eas) logins — 2026-09-26.
 
 ## Staging status
-Supabase staging: migrations 20260926000000, 20260927000000, 20260928000000 applied.
+Supabase staging: migrations 20260926000000 … 20260929000000 applied.
 Edge functions: `media-sign` (upload, batch download, purge) and `ai-journal` deployed. `npm run smoke:staging` passes (incl. delete + purge).
 Agent test account: credentials in local `.env` only (TEST_USER_EMAIL / TEST_USER_PASSWORD).
 
@@ -50,7 +53,7 @@ Agent test account: credentials in local `.env` only (TEST_USER_EMAIL / TEST_USE
 Not deployed.
 
 ## Latest test result
-2026-09-26: `npm run verify` ✅ (lint, typecheck, jest), pgTAP 35/35 ✅, staging smoke ✅, emulator E2E ✅.
+2026-09-26: `npm run verify` ✅ (lint, typecheck, jest), pgTAP 46/46 ✅, family E2E 12/12 ✅, staging smoke ✅, emulator E2E ✅.
 
 ## Latest build
 - Local Android debug + release builds on emulator (`npx expo run:android [--variant release]`).
