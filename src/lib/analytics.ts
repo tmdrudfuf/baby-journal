@@ -14,7 +14,10 @@ export type AnalyticsEvent =
   | 'family_joined'
   | 'monthly_story_viewed'
   | 'yearly_story_viewed'
-  | 'quick_log';
+  | 'quick_log'
+  | 'plans_viewed'
+  | 'upgrade_started'
+  | 'upgrade_completed';
 
 type Sink = (event: AnalyticsEvent, props: Props) => void;
 

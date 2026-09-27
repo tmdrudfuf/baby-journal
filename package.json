@@ -13,6 +13,7 @@
     "expo-crypto": "~57.0.3",
     "expo-file-system": "~57.0.7",
     "expo-font": "~57.0.4",
+    "expo-iap": "^5.8.1",
     "expo-image": "~57.0.5",
     "expo-image-manipulator": "~57.0.20",
     "expo-image-picker": "~57.0.20",
@@ -62,7 +63,8 @@
     "e2e:family": "node scripts/e2e-family-staging.mjs",
     "e2e:delete-account": "node scripts/e2e-delete-account-staging.mjs",
     "e2e:ai-local": "node scripts/e2e-ai-local.mjs",
-    "smoke:ai": "node scripts/smoke-ai-staging.mjs"
+    "smoke:ai": "node scripts/smoke-ai-staging.mjs",
+    "e2e:billing-local": "node scripts/e2e-billing-local.mjs"
   },
   "private": true,
   "jest": {

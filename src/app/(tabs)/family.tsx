@@ -1,5 +1,5 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Linking, Share, View } from 'react-native';
 
@@ -167,7 +167,7 @@ export default function FamilyScreen() {
   function confirmDeleteFamily() {
     Alert.alert(
       `Delete ${baby.family_name}?`,
-      `All of ${baby.name}'s memories, photos, logs and comments will be permanently deleted for everyone in the family.`,
+      `All of ${baby.name}'s memories, photos, logs and comments will be permanently deleted for everyone in the family. A Google Play subscription is not canceled by this; cancel it in Google Play.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -197,7 +197,7 @@ export default function FamilyScreen() {
   function confirmDeleteAccount() {
     Alert.alert(
       'Delete your account?',
-      'Your login is removed and you leave your family. Everyone else keeps the journal: if you are the only owner, ownership passes to the next parent or caregiver. A family with nobody else in it is deleted with all its memories and photos.',
+      'Your login is removed and you leave your family. Everyone else keeps the journal: if you are the only owner, ownership passes to the next parent or caregiver. A family with nobody else in it is deleted with all its memories and photos. Deleting your account does not cancel a Google Play subscription; cancel it in Google Play first.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -236,6 +236,7 @@ export default function FamilyScreen() {
             {PLAN_LABEL[usage.plan_id] ?? usage.plan_id} plan · {formatBytes(usage.used_bytes)} of {formatBytes(usage.storage_bytes)} used
           </Text>
         )}
+        <Button variant="ghost" label="Plans and storage" onPress={() => router.push('/plans')} />
       </Card>
 
       <Card>

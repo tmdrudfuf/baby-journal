@@ -37,7 +37,7 @@ insert into public.invitations (family_id, role, token_hash, expires_at) values
   ('aaaaaaaa-0000-0000-0000-000000000000', 'contributor',
    encode(sha256(convert_to('valid-token', 'UTF8')), 'hex'), now() + interval '1 day');
 
-select is((select count(*)::int from public.profiles), 5, 'profile auto-created for each auth user');
+select is((select count(*)::int from public.profiles where id::text like '00000000-0000-0000-0000-%'), 5, 'profile auto-created for each auth user');
 
 -- ---------------------------------------------------------------- Family A cannot read Family B
 set local role authenticated;

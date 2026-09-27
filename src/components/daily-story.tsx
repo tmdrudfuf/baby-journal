@@ -1,4 +1,4 @@
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 
 import { Button, Card, Field, Text } from '@/components/ui';
@@ -15,6 +15,7 @@ export function DailyStory({ babyId, day, moments, notes, canEdit }: { babyId: s
   const [draft, setDraft] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [needsPlan, setNeedsPlan] = useState(false);
 
   const load = useCallback(() => {
     supabase
@@ -43,7 +44,9 @@ export function DailyStory({ babyId, day, moments, notes, canEdit }: { babyId: s
       body: { kind: 'daily', baby_id: babyId, day, regenerate, tz: Intl.DateTimeFormat().resolvedOptions().timeZone },
     });
     setBusy(false);
-    if (error || !['done', 'unchanged'].includes(data?.status)) {
+    setNeedsPlan(data?.reason === 'plan');
+    if (data?.reason === 'plan') setMessage('Daily Story is part of Plus.');
+    else if (error || !['done', 'unchanged'].includes(data?.status)) {
       setMessage(data?.status === 'disabled' ? 'AI suggestions are turned off for your family.' : 'Could not write a story right now. Your moments are saved.');
     }
     load();
@@ -85,6 +88,7 @@ export function DailyStory({ babyId, day, moments, notes, canEdit }: { babyId: s
         <Button variant="ghost" label="Write today's story" disabled={busy} onPress={() => write(false)} />
       )}
       {message && <Text color="textSecondary">{message}</Text>}
+      {needsPlan && <Button variant="ghost" label="See plans" onPress={() => router.push('/plans')} />}
     </Card>
   );
 }

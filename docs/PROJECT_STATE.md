@@ -16,7 +16,7 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 | M5 Retention | Done 2026-09-27: On This Day, search, opt-in daily reminder, Daily Story (3+ notes; save/edit/regenerate/discard; emulator + `e2e:ai-local` 27/27 with mock) |
 | M6 AI Memory | Done 2026-09-27: gte-small embeddings in the edge runtime (no extra vendor), pgvector exact per-baby search under RLS, "Ask your journal" with grounded, linked answers; sources-only fallback when AI is off/unavailable. `e2e:ai-local` 37/37 incl. Korean |
 | M7 Monthly Memories | Highlights + slideshow done; share/export of a month later |
-| M8 Monetization | Plans, entitlements, storage quota, member limits done; Google Play Billing not started (needs Play Console) |
+| M8 Monetization | Built 2026-09-27: `billing` function (server verify + acknowledge, token bound to one family and to the buyer's account tag, 6-hourly renewal refresh), plan features (Daily Story + Ask answers are Plus), plans screen (store price/period/renewal terms, restore, manage link), downgrade never hides data. Mock store verified (`e2e:billing-local` 14/14). Google Play adapter (expo-iap 5.8) compiles but is **unverified** until Play Console products exist |
 | M9 Yearly Story | "First year" story (milestones, one highlight per month of life, totals) + print-ready A5 PDF via share sheet; full data export (zip parts) done |
 | M10 Launch hardening | Privacy controls, account deletion (app + web page), rate limits, cost model, Data Safety + listing drafts done; monitoring/analytics/store assets pending |
 
@@ -48,16 +48,19 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 ## Required human actions
 1. Anthropic API key (needed only to verify real Claude output). Then: `npx supabase secrets set AI_PROVIDER=anthropic ANTHROPIC_API_KEY=... --project-ref stdlwvahmexetlrrzpld`.
 2. Optional: a real second phone joining via invite (M3 is already verified with two accounts).
-3. Later: Google Play Console account; paid Supabase plan for production; crash/analytics provider.
+3. Google Play Console (needed to verify real subscriptions; see M8): developer account, products `plus_monthly`, `plus_yearly`, `family_monthly`, `family_yearly`, a service account with Play Developer API access (JSON key → `GOOGLE_PLAY_SERVICE_ACCOUNT` secret, `BILLING_PROVIDER=google`), a license tester, and an internal-testing upload (only with explicit approval).
+4. Later: paid Supabase plan for production; crash/analytics provider.
+
+Owner decisions pending: Monthly Memories is listed as Plus in §40 but stays free (already shipped to families); pricing hypothesis $4.99/mo, $39.99/yr for Plus. If the purchaser leaves or deletes their account, the family keeps the plan until the paid period ends (Play keeps billing the purchaser until they cancel).
 
 Decisions (2026-09-27): repo stays public until Play launch; app ID `com.tmdrudfuf.babyjournal` confirmed; public contact tmdrudfuf@gmail.com; staging email confirmation OFF; site published: https://tmdrudfuf.github.io/baby-journal/ (privacy.html, delete-account.html).
 
 Done: Supabase, Cloudflare (wrangler), Expo (eas) logins; R2 enabled; R2 API token — 2026-09-26.
 
 ## Staging status
-Supabase staging migrations: 20260926000000 … 20261006000000 applied. Secret `AI_PROVIDER=mock` (deterministic suggestions, no cost).
-Edge functions: `media-sign` (upload, batch download, purge, export, delete_account; CORS; rate limits) and `ai-journal` deployed.
-Scripts: `npm run smoke:staging` ✅, `npm run e2e:family` ✅ (13/13), `npm run e2e:delete-account` ✅ (7/7).
+Supabase staging migrations: 20260926000000 … 20261007000000 applied. Secret `AI_PROVIDER=mock` (deterministic suggestions, no cost).
+Edge functions: `media-sign` (upload, batch download, purge, export, delete_account; CORS; rate limits) `ai-journal` (suggestions, Daily Story, embeddings, Ask) and `billing` (not configured on staging: purchases are refused until Play is set up) deployed.
+Scripts: `npm run smoke:staging` ✅, `npm run e2e:family` ✅ (13/13), `npm run e2e:delete-account` ✅, `npm run smoke:ai` ✅; local: `e2e:ai-local` 40/40, `e2e:billing-local` 14/14, pgTAP 87/87.
 Agent test account: credentials in local `.env` only (TEST_USER_EMAIL / TEST_USER_PASSWORD).
 
 ## Production status

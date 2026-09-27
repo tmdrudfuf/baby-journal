@@ -41,6 +41,12 @@ const ageDays = (day: string, birth: string | null | undefined) =>
 
 type Ctx = { db: SupabaseClient; admin: SupabaseClient; userId: string | null; tz: string; regenerate: boolean };
 
+// Plus features (§40). Free families keep search and everything already saved; only new AI extras need a plan.
+async function planAllows(ctx: Ctx, familyId: string, feature: 'ai_daily' | 'ai_ask') {
+  const { data } = await ctx.admin.rpc('family_plan', { fid: familyId });
+  return (data as Record<string, unknown> | null)?.[feature] === true;
+}
+
 // Common gate before any provider call: family switch, configuration, per-family daily cap.
 async function prepare(ctx: Ctx, familyId: string): Promise<AiProvider | Response> {
   const { data: fam } = await ctx.db.from('families').select('ai_enabled').eq('id', familyId).single();
@@ -110,6 +116,8 @@ async function ask(ctx: Ctx, babyId: unknown, question: unknown) {
   const found = (matches ?? []) as { id: string; raw_text: string | null; story_text: string | null; occurred_at: string }[];
   const sources = found.map((m) => ({ id: m.id, occurred_at: m.occurred_at, raw_text: m.raw_text }));
   if (!found.length) return json({ status: 'done', answer: null, sources });
+
+  if (!(await planAllows(ctx, baby.family_id, 'ai_ask'))) return json({ status: 'sources_only', reason: 'plan', answer: null, sources });
 
   // Answering sends the retrieved notes to the AI provider, so it follows the family switch and cost limits.
   const ai = await prepare(ctx, baby.family_id);
@@ -196,6 +204,8 @@ async function daily(ctx: Ctx, babyId: unknown, day: unknown) {
   if (!baby) return json({ error: 'not found' }, 404);
   const { data: allowed } = await ctx.db.rpc('has_family_role', { fid: baby.family_id, min_role: 'contributor' });
   if (!allowed) return json({ error: 'forbidden' }, 403);
+
+  if (!(await planAllows(ctx, baby.family_id, 'ai_daily'))) return json({ status: 'unavailable', reason: 'plan' });
 
   // A kept or edited story is the family's; only an explicit regenerate replaces it.
   const { data: existing } = await ctx.db.from('daily_stories').select('story_text').eq('baby_id', babyId).eq('day', day).maybeSingle();

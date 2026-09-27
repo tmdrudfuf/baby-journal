@@ -7,7 +7,7 @@ import { formatDate } from '@/lib/dates';
 import { supabase } from '@/lib/supabase';
 
 type Source = { id: string; occurred_at: string; raw_text: string | null };
-type Result = { answer: string | null; sources: Source[]; note: string | null };
+type Result = { answer: string | null; sources: Source[]; note: string | null; needsPlan: boolean };
 
 // AI memory search (M6): meaning-based search over the family's journal, with an optional answer that
 // is grounded in (and links to) the memories it came from.
@@ -29,11 +29,17 @@ export function AskJournal({ babyId, question, canEdit }: { babyId: string; ques
       body: { kind: 'ask', baby_id: babyId, question: q, tz: Intl.DateTimeFormat().resolvedOptions().timeZone },
     });
     setBusy(false);
-    if (error || !data?.sources) return setResult({ answer: null, sources: [], note: 'Could not search right now. Check your connection.' });
+    if (error || !data?.sources) return setResult({ answer: null, sources: [], note: 'Could not search right now. Check your connection.', needsPlan: false });
+    const needsPlan = data.reason === 'plan';
     setResult({
       answer: data.answer,
       sources: data.sources,
-      note: data.answer ? null : data.sources.length ? 'Here are the memories that seem related.' : 'Nothing in your journal seems related yet.',
+      note: data.answer
+        ? null
+        : data.sources.length
+          ? `${needsPlan ? 'AI answers are part of Plus. ' : ''}Here are the memories that seem related.`
+          : 'Nothing in your journal seems related yet.',
+      needsPlan,
     });
   }
 
@@ -53,6 +59,7 @@ export function AskJournal({ babyId, question, canEdit }: { babyId: string; ques
               <Text numberOfLines={2}>{s.raw_text ?? 'Photo'}</Text>
             </Pressable>
           ))}
+          {result.needsPlan && <Button variant="ghost" label="See plans" onPress={() => router.push('/plans')} />}
         </Card>
       )}
     </>

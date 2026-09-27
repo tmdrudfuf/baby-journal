@@ -33,8 +33,8 @@ select throws_ok(
 
 reset role;
 delete from public.memories where id = 'aaaaaaaa-2222-0000-0000-000000000000';
-select is((select count(*)::int from public.milestones), 1, 'milestone survives memory deletion');
-select is((select memory_id from public.milestones), null::uuid, 'milestone memory link cleared');
+select is((select count(*)::int from public.milestones where family_id = 'aaaaaaaa-0000-0000-0000-000000000000'), 1, 'milestone survives memory deletion');
+select is((select memory_id from public.milestones where family_id = 'aaaaaaaa-0000-0000-0000-000000000000'), null::uuid, 'milestone memory link cleared');
 
 select * from finish();
 rollback;

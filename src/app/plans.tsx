@@ -1,0 +1,126 @@
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { Linking } from 'react-native';
+
+import { Button, Card, Screen, Text } from '@/components/ui';
+import { track } from '@/lib/analytics';
+import { accountTag, getStore, manageUrl, verify, type Offer, type VerifyResult } from '@/lib/billing';
+import { supabase } from '@/lib/supabase';
+import { useApp, useBaby } from '@/state/app';
+
+type Plan = { id: string; storage_bytes: number; max_members: number; originals: boolean; ai_daily: boolean; ai_ask: boolean };
+
+const LABEL: Record<string, string> = { free: 'Free', plus: 'Plus', family: 'Family' };
+const gb = (b: number) => `${Math.round(b / 1024 ** 3)} GB`;
+const features = (p: Plan) =>
+  [
+    `${gb(p.storage_bytes)} photo storage`,
+    `Up to ${p.max_members} family members`,
+    p.ai_daily && 'AI Daily Story',
+    p.ai_ask && 'Ask your journal (AI answers)',
+    p.originals && 'Original-quality backup',
+  ].filter(Boolean) as string[];
+
+const MESSAGES: Record<string, string> = {
+  pending: 'Your payment is pending. Your plan updates as soon as Google Play confirms it.',
+  'not configured': 'Subscriptions are not available yet.',
+  'store error': 'Google Play could not be reached. Try again or use Restore purchases later.',
+};
+const describe = (r: VerifyResult) =>
+  r.status === 'done' ? `You're on ${LABEL[r.plan_id ?? ''] ?? r.plan_id}. Thank you!` : (MESSAGES[r.status] ?? MESSAGES[r.reason ?? ''] ?? 'Something went wrong.');
+
+export default function PlansScreen() {
+  const baby = useBaby();
+  const { session, refresh } = useApp();
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [current, setCurrent] = useState<string | null>(null);
+  const [offers, setOffers] = useState<Offer[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const isOwner = baby.role === 'owner';
+
+  const load = useCallback(() => {
+    supabase.from('plans').select('*').order('storage_bytes').then(({ data }) => setPlans((data as Plan[]) ?? []));
+    supabase.rpc('family_usage', { fid: baby.family_id }).then(({ data }) => setCurrent(data?.[0]?.plan_id ?? null));
+    getStore()
+      .then((s) => s.offers())
+      .then(setOffers)
+      .catch(() => setOffers([]));
+  }, [baby.family_id]);
+  useFocusEffect(load);
+  useFocusEffect(useCallback(() => track('plans_viewed'), []));
+
+  async function run(fn: () => Promise<string>) {
+    setBusy(true);
+    setMessage(null);
+    try {
+      setMessage(await fn());
+    } catch {
+      setMessage('The purchase was not completed.');
+    }
+    setBusy(false);
+    load();
+    refresh();
+  }
+
+  const buy = (offer: Offer) =>
+    run(async () => {
+      track('upgrade_started');
+      const store = await getStore();
+      const owned = await store.buy(offer, await accountTag(session?.user.id ?? ''));
+      const result = await verify(baby.family_id, owned);
+      if (result.status === 'done') track('upgrade_completed');
+      return describe(result);
+    });
+
+  const restore = () =>
+    run(async () => {
+      const owned = await (await getStore()).owned();
+      if (!owned.length) return 'No subscriptions found for this Google account.';
+      let last: VerifyResult = { status: 'unavailable' };
+      for (const o of owned) last = await verify(baby.family_id, o);
+      return describe(last);
+    });
+
+  return (
+    <Screen>
+      <Text variant="display">Plans</Text>
+      <Text color="textSecondary">
+        Your memories always stay yours. If a subscription ends, nothing is deleted: you keep viewing and downloading everything, and only new
+        uploads beyond the Free storage pause.
+      </Text>
+      {plans.map((p) => {
+        const planOffers = (offers ?? []).filter((o) => o.productId.startsWith(`${p.id}_`));
+        return (
+          <Card key={p.id}>
+            <Text variant="title">
+              {LABEL[p.id] ?? p.id}
+              {current === p.id ? ' · your plan' : ''}
+            </Text>
+            {features(p).map((f) => (
+              <Text key={f} color="textSecondary">
+                • {f}
+              </Text>
+            ))}
+            {isOwner &&
+              current !== p.id &&
+              planOffers.map((o) => (
+                <Button key={o.productId} label={`${o.price} / ${o.period}`} variant="accent" disabled={busy} onPress={() => buy(o)} />
+              ))}
+            {planOffers.length > 0 && (
+              <Text variant="caption" color="textSecondary">
+                Renews automatically at the price shown until you cancel in Google Play. Cancel anytime; the plan stays until the end of the paid
+                period.
+              </Text>
+            )}
+          </Card>
+        );
+      })}
+      {!isOwner && <Text color="textSecondary">Only the family owner can change the plan.</Text>}
+      {offers !== null && offers.length === 0 && <Text color="textSecondary">Subscriptions are not available on this device yet.</Text>}
+      {message && <Text>{message}</Text>}
+      {isOwner && <Button variant="ghost" label="Restore purchases" disabled={busy} onPress={restore} />}
+      <Button variant="ghost" label="Manage subscription in Google Play" onPress={() => Linking.openURL(manageUrl())} />
+    </Screen>
+  );
+}

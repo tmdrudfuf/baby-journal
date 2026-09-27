@@ -18,6 +18,9 @@ Migrations: `supabase/migrations/`. Tests: `supabase/tests/database/` (pgTAP, `n
 | `ai_usage` | AI cost telemetry; service role only |
 | `plans` | Config-driven tiers (§31): storage bytes, member limit, originals; edit rows, not code |
 | `entitlements` | Family → plan (+ expiry); written only by the billing backend (service role) |
+| `plan_products` | Store product id → plan (`plus_monthly`, `plus_yearly`, `family_monthly`, `family_yearly`) |
+| `purchases` | One row per store purchase token (bound to one family); service role only; `sync_store_entitlement()` rebuilds the family's plan; pg_cron `refresh-purchases` re-checks renewals every 6 h |
+| `daily_stories` | One optional AI day story per baby per day |
 | `rate_limits` | Per-user fixed-window counters for edge functions |
 | `media_deletions` | R2 keys queued by an `AFTER DELETE` trigger on `memory_assets`; drained by `media-sign` purge; service role only |
 

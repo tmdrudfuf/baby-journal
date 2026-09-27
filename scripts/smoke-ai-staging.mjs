@@ -33,6 +33,8 @@ try {
   const fn = (body) => as('/functions/v1/ai-journal', { method: 'POST', body: { tz: 'Asia/Seoul', ...body } });
 
   familyId = await as('/rest/v1/rpc/create_family', { method: 'POST', body: { family_name: 'Smoke AI' } });
+  // Daily Story and Ask answers are Plus features; a manual grant stands in for a purchase.
+  await call('/rest/v1/entitlements', { method: 'POST', token: service, key: service, body: { family_id: familyId, plan_id: 'plus', source: 'manual' } });
   const [baby] = await as('/rest/v1/babies', { method: 'POST', body: { family_id: familyId, name: 'B', birth_date: '2026-03-26' } });
   const ids = [];
   for (const text of ['Morning walk in the park', 'Tried banana for the first time', 'Grandma came to visit']) {

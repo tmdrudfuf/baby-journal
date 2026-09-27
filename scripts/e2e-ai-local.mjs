@@ -25,6 +25,9 @@ async function user() {
 
 const owner = await user(), viewer = await user();
 const fid = (await owner.as('/rest/v1/rpc/create_family', { method: 'POST', body: { family_name: 'AI' } })).data;
+// Daily Story and Ask answers are Plus features (M8); a manual grant stands in for a purchase here.
+const grant = () => admin('/rest/v1/entitlements', { method: 'POST', body: { family_id: fid, plan_id: 'plus', source: 'manual' } });
+await grant();
 const [baby] = (await owner.as('/rest/v1/babies', { method: 'POST', body: { family_id: fid, name: 'B', birth_date: '2026-03-26' } })).data;
 const code = (await owner.as('/rest/v1/rpc/create_invitation', { method: 'POST', body: { fid, invite_role: 'viewer' } })).data;
 await viewer.as('/rest/v1/rpc/accept_invitation', { method: 'POST', body: { token: code } });
@@ -131,6 +134,14 @@ await owner.as(`/rest/v1/families?id=eq.${fid}`, { method: 'PATCH', body: { ai_e
 await owner.as(`/rest/v1/memories?id=eq.${bananaId}`, { method: 'PATCH', body: { raw_text: 'Tried avocado and banana for the first time' } });
 await ai(owner, bananaId);
 ok((await row(bananaId)).embedded_hash === createHash('sha256').update('Tried avocado and banana for the first time').digest('hex'), 'edited note re-embedded');
+
+// Free plan: search still works, AI extras say why they are missing.
+await admin(`/rest/v1/entitlements?family_id=eq.${fid}`, { method: 'DELETE' });
+a = (await askAs(owner, 'banana')).data;
+ok(a.status === 'sources_only' && a.reason === 'plan' && a.sources.length > 0, 'free plan: Ask shows related memories without an AI answer');
+ok((await daily(owner, { regenerate: true })).data.reason === 'plan', 'free plan: Daily Story needs Plus');
+ok((await viewer.as(`/rest/v1/daily_stories?baby_id=eq.${baby.id}&select=story_text`)).data.length === 1, 'free plan: saved daily stories stay readable');
+await grant();
 
 // 9. Daily cap (limit 20 in .env.ai-test).
 let last;
