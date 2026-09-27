@@ -3,13 +3,14 @@ import { useState } from 'react';
 import { Alert } from 'react-native';
 
 import { MemoryImage } from '@/components/memory-image';
+import { MemorySocial } from '@/components/memory-social';
 import { SyncBadge } from '@/components/sync-badge';
 import { Button, Card, Field, Screen, Text } from '@/components/ui';
 import { Radius } from '@/constants/theme';
 import { formatDate, formatTime } from '@/lib/dates';
 import { getMemory, markDeleting, updateText, useLocal } from '@/lib/local-db';
 import { confirmMilestone, discardStory, dismissMilestone, syncNow } from '@/lib/sync';
-import { useApp } from '@/state/app';
+import { atLeast, useApp } from '@/state/app';
 
 export default function MemoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -26,7 +27,9 @@ export default function MemoryScreen() {
     );
   }
 
-  const canEdit = memory.author_id === session?.user.id; // ponytail: caregiver edit of others' memories arrives with roles UI (M3)
+  const role = baby?.role ?? 'viewer';
+  const canEdit =
+    (memory.author_id === session?.user.id && atLeast(role, 'contributor')) || atLeast(role, 'caregiver');
   const hasPhoto = memory.photo_path || memory.display_asset_id;
 
   function saveText() {
@@ -67,6 +70,11 @@ export default function MemoryScreen() {
       <Text variant="caption" color="textSecondary">
         {formatDate(memory.occurred_at)} · {formatTime(memory.occurred_at)}
       </Text>
+      {memory.author_name && (
+        <Text variant="caption" color="textSecondary">
+          Recorded by {memory.author_name}
+        </Text>
+      )}
       <SyncBadge memory={memory} />
       {draft === null ? (
         <>
@@ -101,6 +109,7 @@ export default function MemoryScreen() {
         </Card>
       )}
       {aiError && <Text color="textSecondary">{aiError}</Text>}
+      {memory.status === 'synced' && session && <MemorySocial memory={memory} userId={session.user.id} />}
       {canEdit && <Button variant="ghost" label="Delete memory" onPress={confirmDelete} />}
     </Screen>
   );

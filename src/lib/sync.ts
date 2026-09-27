@@ -82,13 +82,14 @@ async function remove(m: local.LocalMemory) {
 async function pull(babyId: string) {
   const { data, error } = await supabase
     .from('memories')
-    .select('id, family_id, baby_id, author_id, occurred_at, type, raw_text, story_text, milestone_candidate, milestone_title, memory_assets(id, variant)')
+    .select('id, family_id, baby_id, author_id, occurred_at, type, raw_text, story_text, milestone_candidate, milestone_title, author:profiles!memories_author_profile_fk(display_name), memory_assets(id, variant)')
     .eq('baby_id', babyId)
     .order('occurred_at', { ascending: false })
     .limit(PULL_LIMIT);
   if (error) throw error;
-  const rows = data.map(({ memory_assets, ...m }) => ({
+  const rows = data.map(({ memory_assets, author, ...m }) => ({
     ...m,
+    author_name: author?.display_name ?? null,
     display_asset_id: memory_assets.find((a) => a.variant === 'display')?.id ?? null,
     thumb_asset_id: memory_assets.find((a) => a.variant === 'thumbnail')?.id ?? null,
   }));

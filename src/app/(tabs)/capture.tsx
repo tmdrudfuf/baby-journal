@@ -9,7 +9,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { insertMemory } from '@/lib/local-db';
 import { choosePhoto, recoverPendingPhoto, storePhoto, takePhoto, type PickedPhoto } from '@/lib/media';
 import { syncNow } from '@/lib/sync';
-import { useApp, useBaby } from '@/state/app';
+import { atLeast, useApp, useBaby } from '@/state/app';
 
 export default function CaptureScreen() {
   const baby = useBaby();
@@ -71,6 +71,17 @@ export default function CaptureScreen() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (!atLeast(baby.role, 'contributor')) {
+    return (
+      <Screen>
+        <Text variant="display">Capture</Text>
+        <Text color="textSecondary">
+          You can see, react to and comment on {baby.name}&apos;s memories. Ask a parent to make you a contributor to add your own.
+        </Text>
+      </Screen>
+    );
   }
 
   return (

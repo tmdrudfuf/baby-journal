@@ -61,6 +61,31 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"comments": {
+                  Row: {
+                    "author_id": string | null,"body": string,"created_at": string,"family_id": string,"id": string,"memory_id": string
+                  }
+                  Insert: {
+                    "author_id"?: string | null,"body": string,"created_at"?: string,"family_id": string,"id"?: string,"memory_id": string
+                  }
+                  Update: {
+                    "author_id"?: string | null,"body"?: string,"created_at"?: string,"family_id"?: string,"id"?: string,"memory_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "comments_author_profile_fk"
+      columns: ["author_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "comments_memory_id_family_id_fkey"
+      columns: ["memory_id","family_id"]
+isOneToOne: false
+      referencedRelation: "memories"
+      referencedColumns: ["id","family_id"]
+    }
+                  ]
                 },"families": {
                   Row: {
                     "created_at": string,"created_by": string | null,"id": string,"name": string
@@ -90,6 +115,12 @@ isOneToOne: false
       columns: ["family_id"]
 isOneToOne: false
       referencedRelation: "families"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "family_members_profile_fk"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
                   ]
@@ -137,6 +168,12 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "memories_author_profile_fk"
+      columns: ["author_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "memories_baby_id_family_id_fkey"
       columns: ["baby_id","family_id"]
 isOneToOne: false
@@ -200,6 +237,25 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"reactions": {
+                  Row: {
+                    "created_at": string,"family_id": string,"kind": string,"memory_id": string,"user_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"family_id": string,"kind"?: string,"memory_id": string,"user_id"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"family_id"?: string,"kind"?: string,"memory_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "reactions_memory_id_family_id_fkey"
+      columns: ["memory_id","family_id"]
+isOneToOne: false
+      referencedRelation: "memories"
+      referencedColumns: ["id","family_id"]
+    }
                   ]
                 }
           }
