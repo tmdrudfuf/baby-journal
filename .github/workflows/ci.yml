@@ -41,6 +41,7 @@ jobs:
         with:
           deno-version: v2.x
       - run: for f in supabase/functions/*/index.ts; do deno check --config "$(dirname "$f")/deno.json" "$f"; done
+      - run: deno test --config supabase/functions/_shared/deno.json supabase/functions/_shared/
 
   secrets:
     runs-on: ubuntu-latest

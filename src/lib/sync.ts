@@ -75,7 +75,7 @@ async function push(m: local.LocalMemory) {
   // AI suggestions are optional and never block the memory (§54): fire and forget.
   if (m.raw_text) {
     supabase.functions
-      .invoke('ai-journal', { body: { memory_id: m.id } })
+      .invoke('ai-journal', { body: { memory_id: m.id, tz: deviceTz() } })
       .then(({ data }) => (data?.status === 'done' ? syncNow(m.baby_id) : undefined))
       .catch(() => undefined);
   }
@@ -222,6 +222,26 @@ export async function dismissMilestone(m: local.LocalMemory) {
   if (error) throw error;
   local.clearMilestone(m.id);
 }
+
+export async function editStory(m: local.LocalMemory, text: string) {
+  // story_edited stops the AI from overwriting the parent's words unless they ask to regenerate.
+  const { error } = await supabase.from('memories').update({ story_text: text.trim() || null, story_edited: true }).eq('id', m.id);
+  if (error) throw error;
+  await syncNow(m.baby_id);
+}
+
+// Returns false when AI could not help right now (off, not configured, limit, provider down).
+export async function regenerateStory(m: local.LocalMemory): Promise<boolean> {
+  const { data, error } = await supabase.functions.invoke('ai-journal', {
+    body: { memory_id: m.id, regenerate: true, tz: deviceTz() },
+  });
+  if (error) throw error;
+  if (data?.status !== 'done') return false;
+  await syncNow(m.baby_id);
+  return true;
+}
+
+const deviceTz = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export async function discardStory(m: local.LocalMemory) {
   const { error } = await supabase.from('memories').update({ story_text: null }).eq('id', m.id);

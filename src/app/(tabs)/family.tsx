@@ -37,6 +37,7 @@ export default function FamilyScreen() {
   const [reminder, setReminderState] = useState<Reminder>(getReminder);
   const [pickingTime, setPickingTime] = useState(false);
   const [exportParts, setExportParts] = useState(0);
+  const [aiEnabled, setAiEnabled] = useState<boolean | null>(null);
 
   async function updateReminder(r: Reminder) {
     const ok = await setReminder(r);
@@ -58,10 +59,18 @@ export default function FamilyScreen() {
         setMyName((data as Member[]).find((m) => m.user_id === me)?.profiles?.display_name ?? '');
       });
     supabase.rpc('family_usage', { fid: baby.family_id }).then(({ data }) => setUsage(data?.[0] ?? null));
+    supabase.from('families').select('ai_enabled').eq('id', baby.family_id).single().then(({ data }) => setAiEnabled(data?.ai_enabled ?? null));
   }, [baby.family_id, me]);
 
   // Tabs stay mounted; refresh whenever the tab is shown (someone may have joined).
   useFocusEffect(load);
+
+  async function toggleAi() {
+    const next = !aiEnabled;
+    const { error } = await supabase.from('families').update({ ai_enabled: next }).eq('id', baby.family_id);
+    if (error) return setMessage('Could not change AI suggestions. Check your connection.');
+    setAiEnabled(next);
+  }
 
   async function saveName() {
     const { error } = await supabase.from('profiles').update({ display_name: myName.trim() || null }).eq('id', me ?? '');
@@ -298,6 +307,17 @@ export default function FamilyScreen() {
         <Text variant="label">Privacy</Text>
         <Text color="textSecondary">Your family&apos;s memories are private. They are never sold or used for ads.</Text>
         <Button variant="ghost" label="Privacy policy" onPress={() => Linking.openURL(PRIVACY_URL)} />
+        {aiEnabled !== null && (
+          <>
+            <Text color="textSecondary">
+              AI suggestions {aiEnabled ? 'are on' : 'are off'}. When on, the words of a new memory (never photos) are sent to our AI provider to suggest a
+              journal entry and spot milestones. Your original words are always kept as written.
+            </Text>
+            {isOwner && (
+              <Button variant="ghost" label={aiEnabled ? 'Turn off AI suggestions' : 'Turn on AI suggestions'} onPress={toggleAi} disabled={busy} />
+            )}
+          </>
+        )}
         <Button variant="ghost" label="Download my data" onPress={() => exportData(1)} disabled={busy} />
         {exportParts > 1 &&
           Array.from({ length: exportParts - 1 }, (_, i) => i + 2).map((p) => (

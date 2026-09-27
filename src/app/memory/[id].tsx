@@ -9,7 +9,7 @@ import { Button, Card, Field, Screen, Text } from '@/components/ui';
 import { Radius } from '@/constants/theme';
 import { formatDate, formatTime } from '@/lib/dates';
 import { getMemory, markDeleting, updateText, useLocal } from '@/lib/local-db';
-import { confirmMilestone, discardStory, dismissMilestone, syncNow } from '@/lib/sync';
+import { confirmMilestone, discardStory, dismissMilestone, editStory, regenerateStory, syncNow } from '@/lib/sync';
 import { atLeast, useApp } from '@/state/app';
 
 export default function MemoryScreen() {
@@ -17,6 +17,7 @@ export default function MemoryScreen() {
   const { baby, session } = useApp();
   const memory = useLocal(() => getMemory(id));
   const [draft, setDraft] = useState<string | null>(null);
+  const [storyDraft, setStoryDraft] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
 
   if (!memory || memory.status === 'deleting') {
@@ -105,8 +106,29 @@ export default function MemoryScreen() {
           <Text variant="caption" color="textSecondary">
             Suggested for your journal
           </Text>
-          <Text>{memory.story_text}</Text>
-          {canEdit && <Button label="Discard suggestion" variant="ghost" onPress={() => act(() => discardStory(memory))} />}
+          {storyDraft === null ? (
+            <>
+              <Text>{memory.story_text}</Text>
+              {canEdit && (
+                <>
+                  <Button label="Edit suggestion" variant="ghost" onPress={() => setStoryDraft(memory.story_text ?? '')} />
+                  <Button label="Try another suggestion" variant="ghost" onPress={() => act(async () => {
+                    if (!(await regenerateStory(memory))) setAiError('AI suggestions are unavailable right now. Your memory is saved.');
+                  })} />
+                  <Button label="Discard suggestion" variant="ghost" onPress={() => act(() => discardStory(memory))} />
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <Field label="Your journal words" value={storyDraft} onChangeText={setStoryDraft} multiline autoFocus style={{ minHeight: 120, textAlignVertical: 'top' }} />
+              <Button label="Save" onPress={() => act(async () => {
+                await editStory(memory, storyDraft);
+                setStoryDraft(null);
+              })} />
+              <Button variant="ghost" label="Cancel" onPress={() => setStoryDraft(null)} />
+            </>
+          )}
         </Card>
       )}
       {aiError && <Text color="textSecondary">{aiError}</Text>}
