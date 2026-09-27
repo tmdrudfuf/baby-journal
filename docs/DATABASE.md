@@ -13,6 +13,7 @@ Migrations: `supabase/migrations/`. Tests: `supabase/tests/database/` (pgTAP, `n
 | `memories` | §35 fields; `(baby_id, family_id)` FK guarantees the baby is in the same family |
 | `memory_assets` | R2 object metadata; `(memory_id, family_id)` FK; key must start with `families/{family_id}/memories/{memory_id}/` |
 | `invitations` | SHA-256 token hash, role (never owner), expiry, single use |
+| `media_deletions` | R2 keys queued by an `AFTER DELETE` trigger on `memory_assets`; drained by `media-sign` purge; service role only |
 
 Remaining §34 entities (milestones, tracker_events, comments, reactions, stories, subscriptions, entitlements, ai_jobs, storage_usage, audit_events, …) are added in the milestone that uses them.
 

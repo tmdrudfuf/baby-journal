@@ -56,10 +56,11 @@ export default function OnboardingScreen() {
           value={birth}
           mode="date"
           maximumDate={new Date()}
-          onChange={(_, date) => {
+          onValueChange={(_, date) => {
             setPicking(false);
-            if (date) setBirth(date);
+            setBirth(date);
           }}
+          onDismiss={() => setPicking(false)}
         />
       )}
       {error && <Text color="textSecondary">{error}</Text>}

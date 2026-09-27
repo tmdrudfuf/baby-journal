@@ -27,7 +27,8 @@ export function Text({ variant = 'body', color = 'text', style, ...rest }: TextP
 
 export function Screen({ children, scroll = true }: { children: ReactNode; scroll?: boolean }) {
   const theme = useTheme();
-  const content = <View style={{ padding: Spacing.lg, gap: Spacing.md }}>{children}</View>;
+  // Bottom padding clears the raised Capture tab button.
+  const content = <View style={{ padding: Spacing.lg, paddingBottom: Spacing.xxl * 2, gap: Spacing.md }}>{children}</View>;
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: theme.background }}>
       {scroll ? <ScrollView>{content}</ScrollView> : content}

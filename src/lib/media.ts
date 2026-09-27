@@ -25,7 +25,12 @@ export async function choosePhoto(): Promise<PickedPhoto | null> {
 }
 
 // Android may kill the app while the camera is open; this returns the photo taken meanwhile.
+// Only meaningful right after a process restart, so it runs once per launch: re-running on
+// a screen remount could resurrect an already-used result.
+let recoveryChecked = false;
 export async function recoverPendingPhoto(): Promise<PickedPhoto | null> {
+  if (recoveryChecked) return null;
+  recoveryChecked = true;
   const result = await ImagePicker.getPendingResultAsync();
   if (!result || !('canceled' in result)) return null;
   return first(result);

@@ -78,7 +78,7 @@ export default function CaptureScreen() {
       <Text variant="display">Capture</Text>
       {photo ? (
         <View style={{ gap: Spacing.sm }}>
-          <MemoryImage localUri={photo.uri} assetId={null} style={{ width: '100%', aspectRatio: 4 / 5, borderRadius: Radius.lg }} label="Selected photo" />
+          <MemoryImage localUri={photo.uri} assetId={null} style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: Radius.lg }} label="Selected photo" />
           <Button variant="ghost" label="Remove photo" onPress={() => setPhoto(null)} />
         </View>
       ) : (

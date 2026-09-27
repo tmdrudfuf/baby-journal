@@ -17,6 +17,11 @@
 - `media-sign` authorizes through RLS with the caller's JWT and returns 5-minute presigned URLs.
 - No permanent public media URLs.
 
+## On-device data
+
+- Uploaded photos are re-encoded, which strips EXIF metadata (including GPS). The on-device original keeps it and never leaves the device in M1.
+- Sign-out is blocked while uploads are pending, then wipes the local database and photo files.
+
 ## Secrets
 
 - Only `.env.example` is tracked; `.gitignore` blocks `.env*`, keystores, service-account JSON.
