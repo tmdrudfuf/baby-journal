@@ -14,7 +14,7 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 | M3 Family | Done 2026-09-27: two independent accounts verified (script: 13 checks; emulator + second account live: invite join, realtime memory, heart, comment) |
 | M4 Tracker | Built, emulator-verified |
 | M5 Retention | Done 2026-09-27: On This Day, search, opt-in daily reminder, Daily Story (3+ notes; save/edit/regenerate/discard; emulator + `e2e:ai-local` 27/27 with mock) |
-| M6 AI Memory | Not started (needs AI key + embeddings provider decision) |
+| M6 AI Memory | Done 2026-09-27: gte-small embeddings in the edge runtime (no extra vendor), pgvector exact per-baby search under RLS, "Ask your journal" with grounded, linked answers; sources-only fallback when AI is off/unavailable. `e2e:ai-local` 37/37 incl. Korean |
 | M7 Monthly Memories | Highlights + slideshow done; share/export of a month later |
 | M8 Monetization | Plans, entitlements, storage quota, member limits done; Google Play Billing not started (needs Play Console) |
 | M9 Yearly Story | "First year" story (milestones, one highlight per month of life, totals) + print-ready A5 PDF via share sheet; full data export (zip parts) done |
@@ -55,7 +55,7 @@ Decisions (2026-09-27): repo stays public until Play launch; app ID `com.tmdrudf
 Done: Supabase, Cloudflare (wrangler), Expo (eas) logins; R2 enabled; R2 API token — 2026-09-26.
 
 ## Staging status
-Supabase staging migrations: 20260926000000 … 20261005000000 applied. Secret `AI_PROVIDER=mock` (deterministic suggestions, no cost).
+Supabase staging migrations: 20260926000000 … 20261006000000 applied. Secret `AI_PROVIDER=mock` (deterministic suggestions, no cost).
 Edge functions: `media-sign` (upload, batch download, purge, export, delete_account; CORS; rate limits) and `ai-journal` deployed.
 Scripts: `npm run smoke:staging` ✅, `npm run e2e:family` ✅ (13/13), `npm run e2e:delete-account` ✅ (7/7).
 Agent test account: credentials in local `.env` only (TEST_USER_EMAIL / TEST_USER_PASSWORD).

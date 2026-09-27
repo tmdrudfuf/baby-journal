@@ -2,6 +2,10 @@
 import Anthropic from 'npm:@anthropic-ai/sdk@0';
 
 import {
+  ASK_SCHEMA,
+  ASK_SYSTEM,
+  askPrompt,
+  type AskAnswer,
   DAILY_SCHEMA,
   DAILY_SYSTEM,
   dailyPrompt,
@@ -51,6 +55,7 @@ export function anthropicProvider(apiKey: string, model: string, create?: Create
     name: 'anthropic',
     journal: (input) =>
       ask<JournalSuggestion>(JOURNAL_SYSTEM, JOURNAL_SCHEMA, journalPrompt(input), { story: null, milestone: null }),
+    answer: (input) => ask<AskAnswer>(ASK_SYSTEM, ASK_SCHEMA, askPrompt(input), { answer: null, cited: [] }),
     daily: (input) => ask<{ story: string | null }>(DAILY_SYSTEM, DAILY_SCHEMA, dailyPrompt(input), { story: null }),
   };
 }

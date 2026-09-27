@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { FlatList, Pressable, RefreshControl, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AskJournal } from '@/components/ask-journal';
 import { MemoryImage } from '@/components/memory-image';
 import { SyncBadge } from '@/components/sync-badge';
 import { Button, Card, Field, Text } from '@/components/ui';
@@ -12,7 +13,7 @@ import { formatDate, formatTime } from '@/lib/dates';
 import { listMemories, searchMemories, useLocal, type LocalMemory } from '@/lib/local-db';
 import { monthsWithMemories, monthTitle } from '@/lib/monthly';
 import { syncNow } from '@/lib/sync';
-import { useBaby } from '@/state/app';
+import { atLeast, useBaby } from '@/state/app';
 
 function MemoryCard({ memory }: { memory: LocalMemory }) {
   const hasPhoto = memory.thumb_path || memory.thumb_asset_id;
@@ -60,6 +61,7 @@ export default function JournalScreen() {
           <>
             <Text variant="display">Journal</Text>
             <Field label="Search" value={query} onChangeText={setQuery} placeholder="First smile, bath, Grandma…" returnKeyType="search" />
+            <AskJournal babyId={baby.id} question={query} canEdit={atLeast(baby.role, 'contributor')} />
             {months.length > 0 && (
               <>
                 <Text variant="label" style={{ marginTop: Spacing.md }}>
@@ -97,7 +99,7 @@ export default function JournalScreen() {
         ListEmptyComponent={
           searching ? (
             <Card>
-              <Text color="textSecondary">No memories match “{query.trim()}”.</Text>
+              <Text color="textSecondary">No memories contain the exact words “{query.trim()}”.</Text>
             </Card>
           ) : (
           <Card>

@@ -21,6 +21,14 @@ export function mockProvider(): AiProvider {
         usage: { provider: 'mock', model: 'mock-1', inputTokens: input.text.length, outputTokens: 20 },
       };
     },
+    async answer(input) {
+      if (input.question.includes(MOCK_FAIL_MARKER)) throw new Error('mock provider failure');
+      // Cites the best match and one number that was never retrieved, so grounding is exercised.
+      return {
+        result: input.notes.length ? { answer: `From your journal: ${input.notes[0].text}`, cited: [1, input.notes.length + 5] } : { answer: null, cited: [] },
+        usage: { provider: 'mock', model: 'mock-1', inputTokens: input.question.length, outputTokens: 20 },
+      };
+    },
     async daily(input) {
       if (input.notes.some((n) => n.includes(MOCK_FAIL_MARKER))) throw new Error('mock provider failure');
       return {

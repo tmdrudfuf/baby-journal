@@ -202,13 +202,13 @@ isOneToOne: false
                   ]
                 },"memories": {
                   Row: {
-                    "ai_input_hash": string | null,"ai_status": string | null,"author_id": string | null,"baby_id": string,"created_at": string,"family_id": string,"id": string,"milestone_candidate": boolean,"milestone_title": string | null,"occurred_at": string,"raw_text": string | null,"story_edited": boolean,"story_text": string | null,"type": string,"updated_at": string,"visibility": string
+                    "ai_input_hash": string | null,"ai_status": string | null,"author_id": string | null,"baby_id": string,"created_at": string,"embedded_hash": string | null,"embedding": string | null,"family_id": string,"id": string,"milestone_candidate": boolean,"milestone_title": string | null,"occurred_at": string,"raw_text": string | null,"story_edited": boolean,"story_text": string | null,"type": string,"updated_at": string,"visibility": string
                   }
                   Insert: {
-                    "ai_input_hash"?: string | null,"ai_status"?: string | null,"author_id"?: string | null,"baby_id": string,"created_at"?: string,"family_id": string,"id"?: string,"milestone_candidate"?: boolean,"milestone_title"?: string | null,"occurred_at"?: string,"raw_text"?: string | null,"story_edited"?: boolean,"story_text"?: string | null,"type"?: string,"updated_at"?: string,"visibility"?: string
+                    "ai_input_hash"?: string | null,"ai_status"?: string | null,"author_id"?: string | null,"baby_id": string,"created_at"?: string,"embedded_hash"?: string | null,"embedding"?: string | null,"family_id": string,"id"?: string,"milestone_candidate"?: boolean,"milestone_title"?: string | null,"occurred_at"?: string,"raw_text"?: string | null,"story_edited"?: boolean,"story_text"?: string | null,"type"?: string,"updated_at"?: string,"visibility"?: string
                   }
                   Update: {
-                    "ai_input_hash"?: string | null,"ai_status"?: string | null,"author_id"?: string | null,"baby_id"?: string,"created_at"?: string,"family_id"?: string,"id"?: string,"milestone_candidate"?: boolean,"milestone_title"?: string | null,"occurred_at"?: string,"raw_text"?: string | null,"story_edited"?: boolean,"story_text"?: string | null,"type"?: string,"updated_at"?: string,"visibility"?: string
+                    "ai_input_hash"?: string | null,"ai_status"?: string | null,"author_id"?: string | null,"baby_id"?: string,"created_at"?: string,"embedded_hash"?: string | null,"embedding"?: string | null,"family_id"?: string,"id"?: string,"milestone_candidate"?: boolean,"milestone_title"?: string | null,"occurred_at"?: string,"raw_text"?: string | null,"story_edited"?: boolean,"story_text"?: string | null,"type"?: string,"updated_at"?: string,"visibility"?: string
                   }
                   Relationships: [
                     {
@@ -393,6 +393,11 @@ isOneToOne: false
                            },
 "hit_rate_limit":
 { Args: { "bucket_name": string,"max_hits": number,"window_seconds": number }; Returns: boolean
+                           },
+"match_memories":
+{ Args: { "bid": string,"k"?: number,"query": string }; Returns: {
+              "id": string,"occurred_at": string,"raw_text": string,"similarity": number,"story_text": string
+            }[]
                            }
           }
           Enums: {

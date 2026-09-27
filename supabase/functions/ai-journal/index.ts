@@ -2,11 +2,22 @@
 //
 // POST { memory_id, regenerate?, tz? }        -> story + possible milestone for one memory
 // POST { kind: 'daily', baby_id, day, regenerate?, tz? } -> Daily Story for one local day
-// Both answer { status: 'done' | 'skipped' | 'unchanged' | 'disabled' | 'unavailable', reason? }
+//   both answer { status: 'done' | 'skipped' | 'unchanged' | 'disabled' | 'unavailable', reason? }
+// POST { kind: 'embed_backlog', baby_id }     -> { remaining }: embeds a few older memories per call
+// POST { kind: 'ask', baby_id, question }     -> { status: 'done' | 'sources_only', answer, sources, reason? }
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
-import { cleanSuggestion, DAILY_MIN_NOTES, estimateCostUsd, sha256Hex, type AiProvider, type Usage } from '../_shared/ai.ts';
+import {
+  cleanSuggestion,
+  DAILY_MIN_NOTES,
+  estimateCostUsd,
+  groundCitations,
+  sha256Hex,
+  type AiProvider,
+  type Usage,
+} from '../_shared/ai.ts';
 import { anthropicProvider } from '../_shared/anthropic.ts';
+import { embed } from '../_shared/embed.ts';
 import { localDay } from '../_shared/export-doc.ts';
 import { mockProvider } from '../_shared/mock-ai.ts';
 
@@ -55,6 +66,73 @@ function recordUsage(ctx: Ctx, familyId: string, feature: string, started: numbe
   });
 }
 
+// Search index (M6). gte-small runs inside the edge runtime, so this does not depend on the family's AI switch.
+async function embedMemory(ctx: Ctx, id: string, text: string, hash: string) {
+  try {
+    await ctx.admin.from('memories').update({ embedding: JSON.stringify(await embed(text)), embedded_hash: hash }).eq('id', id);
+  } catch (e) {
+    console.error('embedding failed', (e as Error).message); // search just misses this memory until next edit
+  }
+}
+
+async function embedBacklog(ctx: Ctx, babyId: unknown) {
+  if (typeof babyId !== 'string') return json({ error: 'invalid baby_id' }, 400);
+  const { data: baby } = await ctx.db.from('babies').select('family_id').eq('id', babyId).single();
+  if (!baby) return json({ error: 'not found' }, 404);
+  const { data: allowed } = await ctx.db.rpc('has_family_role', { fid: baby.family_id, min_role: 'contributor' });
+  if (!allowed) return json({ remaining: 0 });
+  // Small batches keep each call well inside the edge CPU limit; the client calls again while remaining > 0.
+  const { data: rows } = await ctx.admin
+    .from('memories')
+    .select('id, raw_text')
+    .eq('baby_id', babyId)
+    .is('embedded_hash', null)
+    .not('raw_text', 'is', null)
+    .limit(6);
+  for (const r of (rows ?? []).slice(0, 5)) {
+    const text = r.raw_text?.trim() ?? '';
+    if (text.length < 3) await ctx.admin.from('memories').update({ embedded_hash: 'short' }).eq('id', r.id);
+    else await embedMemory(ctx, r.id, text, await sha256Hex(text));
+  }
+  return json({ remaining: Math.max(0, (rows?.length ?? 0) - 5) });
+}
+
+async function ask(ctx: Ctx, babyId: unknown, question: unknown) {
+  if (typeof babyId !== 'string' || typeof question !== 'string' || question.trim().length < 3 || question.length > 300) {
+    return json({ error: 'invalid baby_id or question' }, 400);
+  }
+  const q = question.trim();
+  // Retrieval runs as the caller: RLS hides other members' private notes and other families (match_memories is invoker).
+  const { data: baby } = await ctx.db.from('babies').select('family_id').eq('id', babyId).single();
+  if (!baby) return json({ error: 'not found' }, 404);
+  const { data: matches, error } = await ctx.db.rpc('match_memories', { bid: babyId, query: JSON.stringify(await embed(q)), k: 8 });
+  if (error) return json({ error: 'search failed' }, 500);
+  const found = (matches ?? []) as { id: string; raw_text: string | null; story_text: string | null; occurred_at: string }[];
+  const sources = found.map((m) => ({ id: m.id, occurred_at: m.occurred_at, raw_text: m.raw_text }));
+  if (!found.length) return json({ status: 'done', answer: null, sources });
+
+  // Answering sends the retrieved notes to the AI provider, so it follows the family switch and cost limits.
+  const ai = await prepare(ctx, baby.family_id);
+  if (ai instanceof Response) {
+    const { status, reason } = await ai.json();
+    return json({ status: 'sources_only', reason: reason ?? status, answer: null, sources });
+  }
+  const started = Date.now();
+  try {
+    const notes = found.map((m) => ({ date: localDay(m.occurred_at, ctx.tz), text: m.raw_text ?? m.story_text ?? '' }));
+    const { result, usage } = await ai.answer({ question: q, notes });
+    await recordUsage(ctx, baby.family_id, 'ask', started, usage); // the question itself is never stored or logged
+    const cited = groundCitations(result.cited, found.length).map((n) => sources[n - 1]);
+    const answer = result.answer?.trim().slice(0, 1000) || null;
+    // Cited memories first, then the rest of what search found.
+    return json({ status: 'done', answer, sources: answer ? [...cited, ...sources.filter((s) => !cited.includes(s))] : sources });
+  } catch (e) {
+    await recordUsage(ctx, baby.family_id, 'ask', started, { provider: ai.name, model: MODEL });
+    console.error('ask failed', (e as Error).message);
+    return json({ status: 'sources_only', reason: 'provider error', answer: null, sources });
+  }
+}
+
 async function journal(ctx: Ctx, memoryId: unknown) {
   if (typeof memoryId !== 'string') return json({ error: 'invalid memory_id' }, 400);
   // Only people who may edit the memory may spend AI on it.
@@ -64,7 +142,7 @@ async function journal(ctx: Ctx, memoryId: unknown) {
   // Minimum context (§38): this memory's text, date and the baby's age. No other history.
   const { data: m } = await ctx.db
     .from('memories')
-    .select('id, family_id, raw_text, occurred_at, ai_input_hash, story_edited, babies(birth_date)')
+    .select('id, family_id, raw_text, occurred_at, ai_input_hash, embedded_hash, story_edited, babies(birth_date)')
     .eq('id', memoryId)
     .single();
   if (!m) return json({ error: 'not found' }, 404);
@@ -75,6 +153,7 @@ async function journal(ctx: Ctx, memoryId: unknown) {
     return json({ status: 'skipped' });
   }
   const hash = await sha256Hex(text);
+  if (m.embedded_hash !== hash) await embedMemory(ctx, m.id, text, hash);
   // Cache (§39): unchanged text is never sent again unless the parent asks to regenerate.
   if (hash === m.ai_input_hash && !ctx.regenerate) return json({ status: 'unchanged' });
 
@@ -178,5 +257,8 @@ Deno.serve(async (req) => {
 
   const userId = (await db.auth.getUser()).data.user?.id ?? null;
   const ctx: Ctx = { db, admin, userId, tz, regenerate: body.regenerate === true };
-  return body.kind === 'daily' ? daily(ctx, body.baby_id, body.day) : journal(ctx, body.memory_id);
+  if (body.kind === 'daily') return daily(ctx, body.baby_id, body.day);
+  if (body.kind === 'embed_backlog') return embedBacklog(ctx, body.baby_id);
+  if (body.kind === 'ask') return ask(ctx, body.baby_id, body.question);
+  return journal(ctx, body.memory_id);
 });

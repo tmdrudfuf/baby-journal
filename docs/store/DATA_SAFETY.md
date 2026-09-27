@@ -26,7 +26,7 @@ they are legal declarations.**
 | Contacts, financial, messages, device IDs, ads IDs | No | — | — |
 
 Processed by AI (when enabled): the text of a single note, its date and the baby's age, sent to Anthropic to
-suggest a journal line (or, on request, that day's notes for a Daily Story); not used for advertising. The family owner can turn this off.
+suggest a journal line (or, on request, that day's notes for a Daily Story, or a question plus up to 8 matching notes); not used for advertising. The family owner can turn this off.
 
 ## Open items for the human
 

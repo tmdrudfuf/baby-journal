@@ -311,7 +311,8 @@ export default function FamilyScreen() {
           <>
             <Text color="textSecondary">
               AI suggestions {aiEnabled ? 'are on' : 'are off'}. When on, the words of a new memory (never photos) are sent to our AI provider to suggest a
-              journal entry and spot milestones. Your original words are always kept as written.
+              journal entry and spot milestones; a Daily Story sends that day&apos;s notes, and asking your journal a question sends the few notes that
+              match it. Your original words are always kept as written. Search itself works without sending anything outside our servers.
             </Text>
             {isOwner && (
               <Button variant="ghost" label={aiEnabled ? 'Turn off AI suggestions' : 'Turn on AI suggestions'} onPress={toggleAi} disabled={busy} />

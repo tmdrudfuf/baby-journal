@@ -1,10 +1,10 @@
 // M2 acceptance on LOCAL Supabase with the mock AI provider (no paid key needed):
 //   npm run db:start
 //   npx supabase functions serve ai-journal --env-file supabase/functions/.env.ai-test
-//     (.env.ai-test: AI_PROVIDER=mock, AI_DAILY_LIMIT_PER_FAMILY=8)
+//     (.env.ai-test: AI_PROVIDER=mock, AI_DAILY_LIMIT_PER_FAMILY=20)
 //   npm run e2e:ai-local
 import { execSync } from 'node:child_process';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 const status = JSON.parse(execSync('npx supabase status -o json', { stdio: ['ignore', 'pipe', 'ignore'] }).toString());
 const API = status.API_URL, anon = status.ANON_KEY, svc = status.SERVICE_ROLE_KEY;
@@ -103,12 +103,41 @@ await owner.as(`/rest/v1/daily_stories?baby_id=eq.${baby.id}&day=eq.2026-09-20`,
 ok((await viewer.as(`/rest/v1/daily_stories?baby_id=eq.${baby.id}&select=story_text`)).data[0]?.story_text === 'Our day.', 'family sees the saved story');
 ok((await daily(owner, { regenerate: true })).data.status === 'done' && !(await story()).edited, 'regenerate replaces the story');
 
-// 8. Daily cap (limit 8 in .env.ai-test).
+// 8. Ask your journal (M6): retrieval under RLS, grounded answer, graceful fallback.
+const outsider = await user();
+const secret = randomUUID();
+await owner.as('/rest/v1/memories', { method: 'POST', body: { id: secret, family_id: fid, baby_id: baby.id, author_id: owner.id, raw_text: 'Secret banana diary entry', visibility: 'private', occurred_at: dayAt(22) } });
+const ko = await memory('오늘 처음으로 혼자 뒤집었어요', dayAt(21));
+const bananaId = (await admin(`/rest/v1/memories?baby_id=eq.${baby.id}&raw_text=eq.Tried banana for the first time&select=id`)).data[0].id;
+let remaining = 1;
+for (let i = 0; i < 20 && remaining > 0; i++) remaining = (await owner.as('/functions/v1/ai-journal', { method: 'POST', body: { kind: 'embed_backlog', baby_id: baby.id } })).data.remaining;
+ok(remaining === 0, 'older memories embedded in small batches');
+const askAs = (u, question) => u.as('/functions/v1/ai-journal', { method: 'POST', body: { kind: 'ask', baby_id: baby.id, question, tz: 'Pacific/Honolulu' } });
+let a = (await askAs(owner, 'When did she first try banana?')).data;
+ok(a.status === 'done' && a.sources[0]?.id === bananaId && a.answer?.includes('banana'), 'answer grounded in the matching memory, cited first');
+ok(a.sources.length <= 9 && new Set(a.sources.map((x) => x.id)).size === a.sources.length, 'invented citation dropped; sources unique');
+ok((await usage()).at(-1).feature === 'ask', 'ask recorded in telemetry');
+a = (await askAs(viewer, 'banana')).data;
+ok(a.status === 'done' && !a.sources.some((x) => x.id === secret), "viewer can ask but never sees another member's private note");
+ok((await askAs(owner, 'banana diary')).data.sources.some((x) => x.id === secret), 'author finds their own private note');
+ok((await askAs(outsider, 'banana')).status === 404, 'outsider gets nothing');
+a = (await askAs(owner, '아기가 뒤집기 한 날이 언제야?')).data;
+ok(a.sources[0]?.id === ko, 'Korean question finds the Korean note');
+await owner.as(`/rest/v1/families?id=eq.${fid}`, { method: 'PATCH', body: { ai_enabled: false } });
+const before = (await usage()).length;
+a = (await askAs(owner, 'banana')).data;
+ok(a.status === 'sources_only' && a.answer === null && a.sources.length > 0 && (await usage()).length === before, 'AI off: related memories only, nothing sent');
+await owner.as(`/rest/v1/families?id=eq.${fid}`, { method: 'PATCH', body: { ai_enabled: true } });
+await owner.as(`/rest/v1/memories?id=eq.${bananaId}`, { method: 'PATCH', body: { raw_text: 'Tried avocado and banana for the first time' } });
+await ai(owner, bananaId);
+ok((await row(bananaId)).embedded_hash === createHash('sha256').update('Tried avocado and banana for the first time').digest('hex'), 'edited note re-embedded');
+
+// 9. Daily cap (limit 20 in .env.ai-test).
 let last;
-for (let i = 0; i < 8; i++) last = await ai(owner, await memory(`Daily cap probe number ${i} with enough words`));
+for (let i = 0; i < 20; i++) last = await ai(owner, await memory(`Daily cap probe number ${i} with enough words`));
 ok(last.data.status === 'unavailable' && last.data.reason === 'daily limit', 'per-family daily cap enforced');
 
 // Cleanup (local DB only).
 await admin(`/rest/v1/families?id=eq.${fid}`, { method: 'DELETE' });
-for (const x of [owner, viewer]) await admin(`/auth/v1/admin/users/${x.id}`, { method: 'DELETE' });
+for (const x of [owner, viewer, outsider]) await admin(`/auth/v1/admin/users/${x.id}`, { method: 'DELETE' });
 process.exit();

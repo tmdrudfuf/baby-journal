@@ -20,8 +20,19 @@ export type DailyInput = {
   notes: string[]; // that day's notes, oldest first
 };
 
+export type AskInput = {
+  question: string;
+  notes: { date: string; text: string }[]; // retrieved memories, numbered 1..n in the prompt
+};
+
+export type AskAnswer = {
+  answer: string | null; // null when the notes do not answer the question
+  cited: number[]; // 1-based note numbers the answer relies on
+};
+
 export interface AiProvider {
   name: string;
+  answer(input: AskInput): Promise<{ result: AskAnswer; usage: Usage }>;
   journal(input: JournalInput): Promise<{ result: JournalSuggestion; usage: Usage }>;
   daily(input: DailyInput): Promise<{ result: { story: string | null }; usage: Usage }>;
 }
@@ -67,6 +78,33 @@ export const DAILY_SCHEMA = {
 export function dailyPrompt(input: DailyInput): string {
   const age = input.babyAgeDays !== null ? `Baby's age: ${input.babyAgeDays} days.\n` : '';
   return `Date: ${input.day}\n${age}Notes:\n${input.notes.map((n) => `- ${n}`).join('\n')}`;
+}
+
+export const ASK_SYSTEM = [
+  "You answer a parent's question about their own baby journal.",
+  'Use only the numbered notes provided. If they do not answer the question, return answer: null.',
+  'Answer in one to three sentences, in the language of the question, and mention dates when helpful.',
+  'cited: the numbers of the notes your answer relies on. Never give medical advice or assessments.',
+].join('\n');
+
+export const ASK_SCHEMA = {
+  type: 'object',
+  properties: { answer: { type: ['string', 'null'] }, cited: { type: 'array', items: { type: 'integer' } } },
+  required: ['answer', 'cited'],
+  additionalProperties: false,
+} as const;
+
+export const ASK_NOTE_MAX = 500; // characters per retrieved note sent to the provider
+
+export function askPrompt(input: AskInput): string {
+  const notes = input.notes.map((n, i) => `[${i + 1}] ${n.date}: ${n.text.slice(0, ASK_NOTE_MAX)}`).join('\n');
+  return `Notes:\n${notes}\n\nQuestion: ${input.question}`;
+}
+
+// Grounding (§ M6): keep only citations that point at notes we actually retrieved, once each.
+export function groundCitations(cited: unknown, count: number): number[] {
+  if (!Array.isArray(cited)) return [];
+  return [...new Set(cited.filter((n): n is number => Number.isInteger(n) && n >= 1 && n <= count))];
 }
 
 export function journalPrompt(input: JournalInput): string {

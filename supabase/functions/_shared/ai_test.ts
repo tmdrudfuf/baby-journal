@@ -1,6 +1,7 @@
 // deno test --config supabase/functions/_shared/deno.json supabase/functions/_shared/
 import { assertEquals, assertRejects } from 'jsr:@std/assert@1';
 
+import { groundCitations } from './ai.ts';
 import { anthropicProvider } from './anthropic.ts';
 import { mockCalls, mockProvider, MOCK_FAIL_MARKER } from './mock-ai.ts';
 
@@ -57,4 +58,18 @@ Deno.test('daily story sends only that day\'s notes and parses the story', async
   const { result } = await anthropicProvider('k', 'm', create).daily({ day: '2026-09-26', babyAgeDays: 184, notes: ['bath', 'first laugh'] });
   assertEquals(result.story, 'A full day.');
   assertEquals((sent[0] as { messages: { content: string }[] }).messages[0].content, "Date: 2026-09-26\nBaby's age: 184 days.\nNotes:\n- bath\n- first laugh");
+});
+
+Deno.test('ask: answer is parsed, notes are numbered and truncated', async () => {
+  const { create, sent } = fake({ stop_reason: 'end_turn', content: [{ type: 'text', text: '{"answer":"On Sep 26.","cited":[2]}' }] });
+  const notes = [{ date: '2026-09-01', text: 'bath' }, { date: '2026-09-26', text: 'x'.repeat(900) }];
+  const { result } = await anthropicProvider('k', 'm', create).answer({ question: 'When?', notes });
+  assertEquals(result, { answer: 'On Sep 26.', cited: [2] });
+  const prompt = (sent[0] as { messages: { content: string }[] }).messages[0].content;
+  assertEquals(prompt, `Notes:\n[1] 2026-09-01: bath\n[2] 2026-09-26: ${'x'.repeat(500)}\n\nQuestion: When?`);
+});
+
+Deno.test('grounding drops citations to notes that were not retrieved', () => {
+  assertEquals(groundCitations([1, 3, 3, 9, 0, -1, 1.5, 'x'], 3), [1, 3]);
+  assertEquals(groundCitations('nope', 3), []);
 });
