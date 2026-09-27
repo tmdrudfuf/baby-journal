@@ -74,7 +74,9 @@ export default function FamilyScreen() {
     await Share.share({
       message:
         `Join ${baby.name}'s private journal on Baby Journal as ${ROLE_LABEL[role].toLowerCase()}.\n\n` +
-        `1. Install Baby Journal and create an account.\n2. Choose "Join with an invite code" and paste:\n\n${code}\n\n` +
+        `1. Install Baby Journal and create an account.\n` +
+        `2. Open this link on your phone: babyjournal://join?code=${code}\n` +
+        `   or choose "Join with an invite code" and paste:\n\n${code}\n\n` +
         `The code works once and expires in 7 days.`,
     });
   }

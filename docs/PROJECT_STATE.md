@@ -34,7 +34,7 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 - One family per user: the app shows the oldest baby across the user's families; no family switcher. Invitees must join (not create) on first launch.
 - React Compiler turns `x!.prop` in components into render-time reads (crashed QuickLog); lint forbids non-null assertions in src/**/*.tsx.
 - Staging requires email confirmation (Supabase default mailer only sends to project team addresses; links land on localhost but confirm).
-- Invites are shared as a code (no deep link yet). Comments/hearts/milestone decisions are online-only.
+- Invites: code + babyjournal://join link (custom scheme; an https link needs the public site). Comments/hearts/milestone decisions are online-only.
 - Pull fetches the newest 500 memories per baby (pagination later). On This Day / monthly look at on-device memories.
 - Export zips are built in memory (max 1000 photos per download).
 - R2 purge runs on deletes and account deletion; no scheduled sweep yet.

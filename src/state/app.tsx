@@ -28,6 +28,8 @@ type AppContext = {
 
 const Ctx = createContext<AppContext | null>(null);
 const CACHE_KEY = 'current-baby';
+// Invite code from a babyjournal://join link, kept until the join succeeds.
+export const PENDING_INVITE_KEY = 'pending-invite';
 
 function readCache(userId: string): Baby | null {
   try {

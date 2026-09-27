@@ -22,6 +22,7 @@ function RootStack() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="join" />
       <Stack.Protected guard={status === 'signedOut'}>
         <Stack.Screen name="sign-in" />
       </Stack.Protected>

@@ -5,14 +5,22 @@ import { Platform } from 'react-native';
 import { Button, Card, Field, Screen, Text } from '@/components/ui';
 import { formatDate, localDayKey } from '@/lib/dates';
 import { supabase } from '@/lib/supabase';
-import { useApp } from '@/state/app';
+import { PENDING_INVITE_KEY, useApp } from '@/state/app';
+
+const pendingInvite = () => {
+  try {
+    return localStorage.getItem(PENDING_INVITE_KEY) ?? '';
+  } catch {
+    return '';
+  }
+};
 
 export default function OnboardingScreen() {
   const { refresh, signOut } = useApp();
-  const [mode, setMode] = useState<'create' | 'join'>('create');
+  const [mode, setMode] = useState<'create' | 'join'>(() => (pendingInvite() ? 'join' : 'create'));
   const [name, setName] = useState('');
   const [birth, setBirth] = useState(new Date());
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(pendingInvite);
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +59,7 @@ export default function OnboardingScreen() {
       const { error } = await supabase.rpc('accept_invitation', { token: code.trim() });
       if (error?.message.includes('full')) throw new Error('This family has reached its member limit. Ask the owner to remove someone or upgrade.');
       if (error) throw new Error('That invite code is invalid or has expired. Ask for a new one.');
+      localStorage.removeItem(PENDING_INVITE_KEY);
     });
 
   return (
