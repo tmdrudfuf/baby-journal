@@ -22,3 +22,8 @@ supabase/.branches/
 *.mobileprovision
 google-services.json
 play-service-account*.json
+expo-env.d.ts
+*.tsbuildinfo
+.metro-health-check*
+*.pem
+*.key

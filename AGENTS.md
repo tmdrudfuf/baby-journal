@@ -27,11 +27,17 @@ npm run verify
 
 Runs lint, typecheck and unit tests. Database/RLS tests run with `npm run db:test` (needs Docker) and always in CI.
 
+## Expo
+
+- Expo SDK changes often: check the `expo` major in `package.json` and read https://docs.expo.dev/versions/v<major>.0.0/ before touching Expo APIs.
+- Add packages with `npx expo install <pkg>` (add `-- -D` for dev deps).
+- `android/` and `ios/` are generated (CNG). Configure native behaviour via `app.json` / config plugins only.
+
 ## Layout
 
-- `app/` — Expo Router screens
-- `components/` — shared UI primitives
-- `lib/` — theme tokens, clients, pure helpers
+- `src/app/` — Expo Router screens (every file is a route; keep non-route code out)
+- `src/components/`, `src/hooks/`, `src/constants/` — UI primitives, hooks, design tokens (`@/` alias = `src/`)
+- `tests/unit/` — Jest (jest-expo preset)
 - `supabase/` — config, migrations, edge functions, pgTAP tests
 - `scripts/` — cross-platform Node scripts (bootstrap, verify)
 - `docs/` — project documentation
