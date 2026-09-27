@@ -57,7 +57,8 @@
     "db:test": "supabase test db",
     "smoke:staging": "node scripts/smoke-staging.mjs",
     "db:types": "supabase gen types typescript --local > src/types/database.ts",
-    "e2e:family": "node scripts/e2e-family-staging.mjs"
+    "e2e:family": "node scripts/e2e-family-staging.mjs",
+    "e2e:delete-account": "node scripts/e2e-delete-account-staging.mjs"
   },
   "private": true,
   "jest": {

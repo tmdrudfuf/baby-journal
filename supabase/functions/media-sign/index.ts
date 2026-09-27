@@ -4,6 +4,7 @@
 // POST { action: 'upload', memory_id, variant, ext } -> { url, object_key, content_type, expires_in }
 // POST { action: 'download', asset_ids: uuid[] }     -> { urls: { [asset_id]: url }, expires_in }
 // POST { action: 'purge' }                           -> { deleted }  (drains media_deletions)
+// POST { action: 'delete_account' }                  -> { deleted: true }  (§37; Play account-deletion requirement)
 import { AwsClient } from 'npm:aws4fetch@1.0.20';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -28,6 +29,24 @@ async function presign(method: 'GET' | 'PUT', key: string) {
   url.searchParams.set('X-Amz-Expires', String(URL_TTL_SECONDS));
   const signed = await r2.sign(new Request(url, { method }), { aws: { signQuery: true } });
   return signed.url;
+}
+
+// Deletes queued R2 objects. R2 returns 204 for missing objects, so retries are safe.
+async function purgeQueue() {
+  const admin = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
+  let total = 0;
+  for (;;) {
+    const { data: queued } = await admin.from('media_deletions').select('object_key').limit(MAX_BATCH);
+    if (!queued?.length) return total;
+    const done: string[] = [];
+    for (const { object_key } of queued) {
+      const res = await r2.fetch(`${bucketUrl}/${object_key}`, { method: 'DELETE' });
+      if (res.ok) done.push(object_key);
+    }
+    if (!done.length) return total; // R2 unavailable: leave the rest for the next purge
+    await admin.from('media_deletions').delete().in('object_key', done);
+    total += done.length;
+  }
 }
 
 const json = (body: unknown, status = 200) =>
@@ -84,16 +103,39 @@ Deno.serve(async (req) => {
     // Callable by any signed-in user: it only removes objects whose rows are already gone.
     const { data: user } = await db.auth.getUser();
     if (!user.user) return json({ error: 'unauthorized' }, 401);
+    return json({ deleted: await purgeQueue() });
+  }
+
+  if (body.action === 'delete_account') {
+    const { data: auth } = await db.auth.getUser();
+    const me = auth.user?.id;
+    if (!me) return json({ error: 'unauthorized' }, 401);
     const admin = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
-    const { data: queued } = await admin.from('media_deletions').select('object_key').limit(MAX_BATCH);
-    const done: string[] = [];
-    for (const { object_key } of queued ?? []) {
-      // R2 returns 204 for missing objects, so retries are safe.
-      const res = await r2.fetch(`${bucketUrl}/${object_key}`, { method: 'DELETE' });
-      if (res.ok) done.push(object_key);
+    // Families this user alone owns are deleted with everything in them. In families with another
+    // owner, the user just leaves; memories they wrote there stay with that family (author cleared).
+    const { data: owned } = await admin
+      .from('family_members')
+      .select('family_id')
+      .eq('user_id', me)
+      .eq('role', 'owner')
+      .is('revoked_at', null);
+    for (const { family_id } of owned ?? []) {
+      const { count } = await admin
+        .from('family_members')
+        .select('user_id', { count: 'exact', head: true })
+        .eq('family_id', family_id)
+        .eq('role', 'owner')
+        .is('revoked_at', null)
+        .neq('user_id', me);
+      if (!count) {
+        const { error } = await admin.from('families').delete().eq('id', family_id);
+        if (error) return json({ error: 'could not delete family' }, 500);
+      }
     }
-    if (done.length) await admin.from('media_deletions').delete().in('object_key', done);
-    return json({ deleted: done.length });
+    const { error } = await admin.auth.admin.deleteUser(me); // cascades profile + memberships
+    if (error) return json({ error: 'could not delete account' }, 500);
+    await purgeQueue();
+    return json({ deleted: true });
   }
 
   return json({ error: 'unknown action' }, 400);

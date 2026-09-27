@@ -6,6 +6,7 @@ import { AppState } from 'react-native';
 
 import * as local from '@/lib/local-db';
 import { deleteAllLocalFiles, deleteLocalFiles } from '@/lib/media';
+import { getReminder, setReminder } from '@/lib/reminders';
 import { supabase } from '@/lib/supabase';
 import { syncNow } from '@/lib/sync';
 
@@ -22,6 +23,7 @@ type AppContext = {
   baby: Baby | null;
   refresh: () => void;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
 };
 
 const Ctx = createContext<AppContext | null>(null);
@@ -135,13 +137,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     // Private by default: nothing from this account stays on the device.
     local.wipe();
+    setReminder({ ...getReminder(), enabled: false }).catch(() => undefined);
     deleteAllLocalFiles();
     if (userId) localStorage.removeItem(`${CACHE_KEY}:${userId}`);
   }, [userId]);
 
+  // Permanent (§37): sole-owned families, their memories and photos are deleted server-side.
+  const deleteAccount = useCallback(async () => {
+    const { error } = await supabase.functions.invoke('media-sign', { body: { action: 'delete_account' } });
+    if (error) throw new Error('Could not delete your account. Check your connection and try again.');
+    local.wipe();
+    deleteAllLocalFiles();
+    setReminder({ ...getReminder(), enabled: false }).catch(() => undefined);
+    if (userId) localStorage.removeItem(`${CACHE_KEY}:${userId}`);
+    await supabase.auth.signOut({ scope: 'local' }); // the server session is already gone
+  }, [userId]);
+
   return (
     <Ctx.Provider
-      value={{ status, session: session ?? null, baby, refresh: () => setAttempt((a) => a + 1), signOut }}>
+      value={{ status, session: session ?? null, baby, refresh: () => setAttempt((a) => a + 1), signOut, deleteAccount }}>
       {children}
     </Ctx.Provider>
   );

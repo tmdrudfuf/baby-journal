@@ -22,7 +22,7 @@ const INVITABLE: Role[] = ['caregiver', 'contributor', 'viewer'];
 
 export default function FamilyScreen() {
   const baby = useBaby();
-  const { session, signOut, refresh } = useApp();
+  const { session, signOut, refresh, deleteAccount } = useApp();
   const me = session?.user.id;
   const [members, setMembers] = useState<Member[] | null>(null);
   const [myName, setMyName] = useState('');
@@ -125,6 +125,65 @@ export default function FamilyScreen() {
     }
   }
 
+  function confirmDeleteFamily() {
+    Alert.alert(
+      `Delete ${baby.family_name}?`,
+      `All of ${baby.name}'s memories, photos, logs and comments will be permanently deleted for everyone in the family.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () =>
+            Alert.alert('This cannot be undone', 'Delete the family and everything in it now?', [
+              { text: 'Keep it', style: 'cancel' },
+              { text: 'Delete forever', style: 'destructive', onPress: deleteFamily },
+            ]),
+        },
+      ],
+    );
+  }
+
+  async function deleteFamily() {
+    setBusy(true);
+    const { error } = await supabase.from('families').delete().eq('id', baby.family_id);
+    if (error) {
+      setBusy(false);
+      return setMessage('Could not delete the family. Check your connection and try again.');
+    }
+    await supabase.functions.invoke('media-sign', { body: { action: 'purge' } }).catch(() => undefined);
+    refresh(); // no family any more: back to onboarding, local copies are wiped
+  }
+
+  function confirmDeleteAccount() {
+    Alert.alert(
+      'Delete your account?',
+      'Families you alone own are deleted with all their memories and photos. In families with another owner you simply leave.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () =>
+            Alert.alert('This cannot be undone', 'Delete your account permanently?', [
+              { text: 'Keep my account', style: 'cancel' },
+              {
+                text: 'Delete forever',
+                style: 'destructive',
+                onPress: () => {
+                  setBusy(true);
+                  deleteAccount().catch((e: Error) => {
+                    setBusy(false);
+                    setMessage(e.message);
+                  });
+                },
+              },
+            ]),
+        },
+      ],
+    );
+  }
+
   const isOwner = baby.role === 'owner';
 
   return (
@@ -198,6 +257,13 @@ export default function FamilyScreen() {
           Signed in as {session?.user.email}
         </Text>
         <Button variant="ghost" label="Sign out" onPress={onSignOut} disabled={busy} />
+      </Card>
+
+      <Card>
+        <Text variant="label">Privacy</Text>
+        <Text color="textSecondary">Your family&apos;s memories are private. They are never sold or used for ads.</Text>
+        {isOwner && <Button variant="ghost" label="Delete this family" onPress={confirmDeleteFamily} disabled={busy} />}
+        <Button variant="ghost" label="Delete my account" onPress={confirmDeleteAccount} disabled={busy} />
       </Card>
     </Screen>
   );
