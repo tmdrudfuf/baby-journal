@@ -1,3 +1,4 @@
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Share, View } from 'react-native';
@@ -5,6 +6,7 @@ import { Alert, Share, View } from 'react-native';
 import { Button, Card, Field, Screen, Text } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { failedCount } from '@/lib/local-db';
+import { getReminder, setReminder, type Reminder } from '@/lib/reminders';
 import { supabase } from '@/lib/supabase';
 import { atLeast, useApp, useBaby, type Role } from '@/state/app';
 
@@ -26,6 +28,15 @@ export default function FamilyScreen() {
   const [myName, setMyName] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [reminder, setReminderState] = useState<Reminder>(getReminder);
+  const [pickingTime, setPickingTime] = useState(false);
+
+  async function updateReminder(r: Reminder) {
+    const ok = await setReminder(r);
+    setReminderState(ok ? r : { ...r, enabled: false });
+    if (!ok) setMessage('Notifications are off for Baby Journal. You can allow them in your phone settings.');
+  }
+  const reminderTime = new Date(2000, 0, 1, reminder.hour, reminder.minute).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
   const load = useCallback(() => {
     supabase
@@ -156,6 +167,29 @@ export default function FamilyScreen() {
       <Card>
         <Field label="Your name in this family" value={myName} onChangeText={setMyName} placeholder="e.g. Dad, Grandma" />
         <Button variant="ghost" label="Save name" onPress={saveName} />
+      </Card>
+      <Card>
+        <Text variant="label">Gentle reminder</Text>
+        <Text color="textSecondary">
+          {reminder.enabled ? `Every day at ${reminderTime}, a quiet nudge to keep a moment.` : 'Off. Turn on a quiet daily nudge if it helps.'}
+        </Text>
+        <Button
+          variant="ghost"
+          label={reminder.enabled ? 'Turn off' : `Remind me at ${reminderTime}`}
+          onPress={() => updateReminder({ ...reminder, enabled: !reminder.enabled })}
+        />
+        <Button variant="ghost" label="Change time" onPress={() => setPickingTime(true)} />
+        {pickingTime && (
+          <DateTimePicker
+            value={new Date(2000, 0, 1, reminder.hour, reminder.minute)}
+            mode="time"
+            onValueChange={(_, d) => {
+              setPickingTime(false);
+              updateReminder({ enabled: true, hour: d.getHours(), minute: d.getMinutes() });
+            }}
+            onDismiss={() => setPickingTime(false)}
+          />
+        )}
       </Card>
       {message && <Text color="textSecondary">{message}</Text>}
 
