@@ -4,7 +4,9 @@ import {
   Pressable,
   ScrollView,
   Text as RNText,
+  TextInput,
   View,
+  type TextInputProps,
   type TextProps as RNTextProps,
   type ViewProps,
 } from 'react-native';
@@ -74,5 +76,33 @@ export function Button({ label, onPress, variant = 'primary', disabled }: Button
         {label}
       </Text>
     </Pressable>
+  );
+}
+
+export function Field({ label, style, ...rest }: TextInputProps & { label: string }) {
+  const theme = useTheme();
+  return (
+    <View style={{ gap: Spacing.xs }}>
+      <Text variant="label">{label}</Text>
+      <TextInput
+        accessibilityLabel={label}
+        placeholderTextColor={theme.textSecondary}
+        style={[
+          Type.body,
+          {
+            minHeight: TouchTarget,
+            color: theme.text,
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+            borderWidth: 1,
+            borderRadius: Radius.md,
+            paddingHorizontal: Spacing.md,
+            paddingVertical: Spacing.sm,
+          },
+          style,
+        ]}
+        {...rest}
+      />
+    </View>
   );
 }

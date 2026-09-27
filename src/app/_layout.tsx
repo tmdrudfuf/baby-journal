@@ -1,21 +1,40 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { DarkTheme, DefaultTheme, Tabs, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import type { ComponentProps } from 'react';
-import { useColorScheme, View } from 'react-native';
+import { useColorScheme } from 'react-native';
 
-import { Radius, TouchTarget } from '@/constants/theme';
+import { Button, Screen, Text } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
+import { AppProvider, useApp } from '@/state/app';
 
-type IconName = ComponentProps<typeof Ionicons>['name'];
+function RootStack() {
+  const { status, refresh } = useApp();
 
-const tabs: { name: string; title: string; icon: IconName }[] = [
-  { name: 'index', title: 'Home', icon: 'home-outline' },
-  { name: 'journal', title: 'Journal', icon: 'book-outline' },
-  { name: 'capture', title: 'Capture', icon: 'add' },
-  { name: 'growth', title: 'Growth', icon: 'leaf-outline' },
-  { name: 'family', title: 'Family', icon: 'people-outline' },
-];
+  if (status === 'loading') return null;
+  if (status === 'error') {
+    return (
+      <Screen>
+        <Text variant="title">Can&apos;t reach Baby Journal</Text>
+        <Text color="textSecondary">Check your connection. Your memories on this device are safe.</Text>
+        <Button label="Try again" onPress={refresh} />
+      </Screen>
+    );
+  }
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={status === 'signedOut'}>
+        <Stack.Screen name="sign-in" />
+      </Stack.Protected>
+      <Stack.Protected guard={status === 'needsBaby'}>
+        <Stack.Screen name="onboarding" />
+      </Stack.Protected>
+      <Stack.Protected guard={status === 'ready'}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="memory/[id]" options={{ headerShown: true, title: '', headerBackTitle: 'Back' }} />
+      </Stack.Protected>
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   const dark = useColorScheme() === 'dark';
@@ -29,43 +48,9 @@ export default function RootLayout() {
         colors: { ...navTheme.colors, background: theme.background, card: theme.background, primary: theme.primary, text: theme.text, border: theme.border },
       }}>
       <StatusBar style={dark ? 'light' : 'dark'} />
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: theme.primary,
-          tabBarInactiveTintColor: theme.textSecondary,
-          tabBarStyle: { backgroundColor: theme.background, borderTopColor: theme.border, height: 72 },
-          tabBarLabelStyle: { fontSize: 12 },
-        }}>
-        {tabs.map(({ name, title, icon }) => (
-          <Tabs.Screen
-            key={name}
-            name={name}
-            options={{
-              title,
-              tabBarAccessibilityLabel: title,
-              tabBarIcon: ({ color, size }) =>
-                name === 'capture' ? (
-                  // Capture is visually emphasized (§10).
-                  <View
-                    style={{
-                      width: TouchTarget,
-                      height: TouchTarget,
-                      marginTop: -20,
-                      borderRadius: Radius.pill,
-                      backgroundColor: theme.accent,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                    <Ionicons name={icon} size={32} color={theme.onAccent} />
-                  </View>
-                ) : (
-                  <Ionicons name={icon} size={size} color={color} />
-                ),
-            }}
-          />
-        ))}
-      </Tabs>
+      <AppProvider>
+        <RootStack />
+      </AppProvider>
     </ThemeProvider>
   );
 }
