@@ -26,7 +26,6 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 
 ## Active tasks
 - [ ] Owner: Anthropic API key on staging
-- [ ] Owner decisions: staging email confirmation, publish `site/` on GitHub Pages
 - [ ] Google Play Console account (billing, internal testing track)
 - [ ] Crash monitoring + analytics provider accounts (Sentry / PostHog or similar)
 - [x] Invite links (babyjournal://join), export parts (50 photos), scheduled R2 sweep (pg_cron), first-year PDF
@@ -34,7 +33,7 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 ## Known issues
 - One family per user: the app shows the oldest baby across the user's families; no family switcher. Invitees must join (not create) on first launch.
 - React Compiler turns `x!.prop` in components into render-time reads (crashed QuickLog); lint forbids non-null assertions in src/**/*.tsx.
-- Staging requires email confirmation (Supabase default mailer only sends to project team addresses; links land on localhost but confirm).
+- Production will need a custom email sender (SMTP) if email confirmation is turned on there.
 - Invites: code + babyjournal://join link (custom scheme; an https link needs the public site). Comments/hearts/milestone decisions are online-only.
 - Pull fetches the newest 500 memories per baby (pagination later). On This Day / monthly look at on-device memories.
 - Export zips are built in memory (max 1000 photos per download).
@@ -48,12 +47,10 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 
 ## Required human actions
 1. Anthropic API key (optional; turns on AI suggestions).
-2. Decide: staging email confirmation on/off.
-3. Approve publishing `site/` (privacy policy + account deletion) on GitHub Pages.
-4. Optional: second person joins via invite (closes M3 two-device check).
-5. Later: Google Play Console account; paid Supabase plan for production; crash/analytics provider.
+2. Optional: second person joins via invite (closes M3 two-device check).
+3. Later: Google Play Console account; paid Supabase plan for production; crash/analytics provider.
 
-Decisions (2026-09-27): repo stays public until Play launch; app ID `com.tmdrudfuf.babyjournal` confirmed; public contact tmdrudfuf@gmail.com.
+Decisions (2026-09-27): repo stays public until Play launch; app ID `com.tmdrudfuf.babyjournal` confirmed; public contact tmdrudfuf@gmail.com; staging email confirmation OFF; site published: https://tmdrudfuf.github.io/baby-journal/ (privacy.html, delete-account.html).
 
 Done: Supabase, Cloudflare (wrangler), Expo (eas) logins; R2 enabled; R2 API token — 2026-09-26.
 

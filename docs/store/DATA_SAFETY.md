@@ -31,5 +31,5 @@ suggest a journal line; not used for advertising.
 ## Open items for the human
 
 - Target audience and content settings: adults (parents/caregivers).
-- Privacy policy URL (public page) — required before submission.
-- Account deletion web URL — Play requires a web link as well as the in-app option.
+- Privacy policy URL: https://tmdrudfuf.github.io/baby-journal/privacy.html
+- Account deletion URL: https://tmdrudfuf.github.io/baby-journal/delete-account.html

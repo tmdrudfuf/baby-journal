@@ -38,7 +38,10 @@ PRIVATE BY DEFAULT
 Parenting
 
 ## Contact email
-(human to provide)
+tmdrudfuf@gmail.com
+
+## Privacy policy
+https://tmdrudfuf.github.io/baby-journal/privacy.html
 
 ## Graphics checklist
 - App icon 512×512: generate from assets/source/render-icons.js

@@ -20,6 +20,7 @@ const ROLE_LABEL: Record<Role, string> = {
   viewer: 'Viewer',
 };
 const INVITABLE: Role[] = ['caregiver', 'contributor', 'viewer'];
+const PRIVACY_URL = 'https://tmdrudfuf.github.io/baby-journal/privacy.html';
 const PLAN_LABEL: Record<string, string> = { free: 'Free', plus: 'Plus', family: 'Family' };
 const formatBytes = (b: number) =>
   b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(b % 1024 ** 3 ? 1 : 0)} GB` : `${Math.max(0.1, b / 1024 ** 2).toFixed(1)} MB`;
@@ -296,6 +297,7 @@ export default function FamilyScreen() {
       <Card>
         <Text variant="label">Privacy</Text>
         <Text color="textSecondary">Your family&apos;s memories are private. They are never sold or used for ads.</Text>
+        <Button variant="ghost" label="Privacy policy" onPress={() => Linking.openURL(PRIVACY_URL)} />
         <Button variant="ghost" label="Download my data" onPress={() => exportData(1)} disabled={busy} />
         {exportParts > 1 &&
           Array.from({ length: exportParts - 1 }, (_, i) => i + 2).map((p) => (
