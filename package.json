@@ -45,7 +45,8 @@
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
-    "db:test": "supabase test db"
+    "db:test": "supabase test db",
+    "smoke:staging": "node scripts/smoke-staging.mjs"
   },
   "private": true,
   "jest": {
