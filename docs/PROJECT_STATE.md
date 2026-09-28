@@ -77,7 +77,7 @@ Owner device check 2026-09-27: pastel theme (peach and mint) and baby-over-journ
 Localization 2026-09-28: app UI in Korean and English, following the phone's language (English fallback). Server-side text (AI output) follows the language of each note.
 
 ## Latest build
-- Local release APK a0e1865 (arm64 + x86_64, staging, debug-keystore signed; video clips on Plus/Family). EAS free Android builds used up until 2026-10-01, so built with `gradlew assembleRelease` and the EAS preview env. Different signature from EAS builds: uninstall the old app first. Emulator: video record, preview, save, playback and ▶ overlays verified.
+- Local release APK a0e1865 (arm64 + x86_64, staging, debug-keystore signed; video clips on Plus/Family). Run `expo prebuild --clean` first or android/ keeps stale icons. EAS free Android builds used up until 2026-10-01, so built with `gradlew assembleRelease` and the EAS preview env. Different signature from EAS builds: uninstall the old app first. Emulator: video record, preview, save, playback and ▶ overlays verified.
 - EAS preview APK 1e0dbbe (arm64, staging; AI retry + AI status on memories): https://expo.dev/artifacts/eas/T3KPpLpyp6ENZYeYwyfqm34aYjAdRWX-csCUmPBOZYs.apk
 - EAS preview APK f0538b9 (arm64, staging; Korean UI, compact actions, milestone badges): https://expo.dev/artifacts/eas/kpg4IBkQEnOR8uRBT8jsvwxf5JdnBIIdReAYn61N4nc.apk
 - EAS preview APK 5947137 (arm64, staging; Korean + English UI): https://expo.dev/artifacts/eas/9QwUn_s5vNM_HKWfOmUIxarvykaVRIhjn8VLksxUi-I.apk
