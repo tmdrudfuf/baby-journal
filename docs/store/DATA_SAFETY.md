@@ -26,7 +26,7 @@ they are legal declarations.**
 | Financial info → Purchase history (subscription product, status, expiry, store purchase token) | Yes | App functionality (unlocking the family's plan) | Only if the owner subscribes |
 | Contacts, payment/card details, messages, device IDs, ads IDs | No (payment is handled entirely by Google Play) | — | — |
 
-Processed by AI (when enabled): the text of a single note, its date and the baby's age, sent to Anthropic to
+Processed by AI (when enabled): the text of a single note, its date and the baby's age, sent to OpenAI to
 suggest a journal line (or, on request, that day's notes for a Daily Story, or a question plus up to 8 matching notes); not used for advertising. The family owner can turn this off.
 
 ## Open items for the human

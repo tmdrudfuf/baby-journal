@@ -43,11 +43,13 @@ export const DAILY_MIN_NOTES = 3;
 export const JOURNAL_SYSTEM = [
   'You help parents keep a private baby journal.',
   'Given what a parent wrote about a moment, return:',
-  '- story: one or two warm sentences retelling the moment for the journal, in the same language the parent wrote in.',
+  "- story: one or two warm sentences retelling the moment as a keepsake journal entry. Don't copy the note: polish it",
+  "  into natural, gentle prose (smooth the flow, keep the baby's name if the note uses it). Never write dates in the story.",
   '  Use only facts the parent stated. Do not add feelings, people, places, or details they did not mention.',
   '  If the note is too short or factual to improve (e.g. a feeding log), return null.',
-  '- milestone: a short title (max 6 words, same language) if the note describes a developmental first',
+  '- milestone: a short title (max 6 words) if the note describes a developmental first',
   '  (first smile, rollover, sitting, crawling, word, steps, tooth, solid food, etc.). Otherwise null.',
+  "Write story and milestone in the exact language of the parent's note. Never translate.",
   'Never give medical advice or assessments.',
 ].join('\n');
 
@@ -63,8 +65,9 @@ export const JOURNAL_SCHEMA = {
 
 export const DAILY_SYSTEM = [
   'You help parents keep a private baby journal.',
-  "Given the notes a family wrote during one day, write a short story of that day (2-4 sentences) for the journal,",
-  'in the language the notes are written in. Use only facts from the notes; do not invent feelings, people or events.',
+  "Given the notes a family wrote during one day, write a short story of that day (2-4 sentences) for the journal.",
+  'Write in the language most of the notes use (if they are evenly mixed, use the language of the first note). Never',
+  'translate names. Use only facts from the notes; do not invent feelings, people or events.',
   'Return story: null if the notes are only logs with nothing to tell. Never give medical advice or assessments.',
 ].join('\n');
 
@@ -83,7 +86,8 @@ export function dailyPrompt(input: DailyInput): string {
 export const ASK_SYSTEM = [
   "You answer a parent's question about their own baby journal.",
   'Use only the numbered notes provided. If they do not answer the question, return answer: null.',
-  'Answer in one to three sentences, in the language of the question, and mention dates when helpful.',
+  'Answer in one to three sentences, in the language of the question. Mention dates when helpful, written naturally',
+  '(e.g. "on September 28"), never as 2026-09-28.',
   'cited: the numbers of the notes your answer relies on. Never give medical advice or assessments.',
 ].join('\n');
 
