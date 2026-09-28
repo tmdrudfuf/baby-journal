@@ -81,7 +81,7 @@ async function remove(m: local.LocalMemory) {
 async function pull(babyId: string) {
   const { data, error } = await supabase
     .from('memories')
-    .select('id, family_id, baby_id, author_id, occurred_at, type, raw_text, story_text, milestone_candidate, milestone_title, author:profiles!memories_author_profile_fk(display_name), memory_assets(id, variant)')
+    .select('id, family_id, baby_id, author_id, occurred_at, type, raw_text, story_text, milestone_candidate, milestone_title, ai_status, author:profiles!memories_author_profile_fk(display_name), memory_assets(id, variant)')
     .eq('baby_id', babyId)
     .order('occurred_at', { ascending: false })
     .limit(PULL_LIMIT);
@@ -170,6 +170,7 @@ export function syncNow(babyId: string | undefined, { force = false } = {}): Pro
       if (babyId) {
         // Offline: keep showing local data.
         await pull(babyId).catch(() => undefined);
+        if (await retryAi(babyId).catch(() => false)) await pull(babyId).catch(() => undefined);
         await pullEvents(babyId).catch(() => undefined);
         await pullMilestones(babyId).catch(() => undefined);
       }
@@ -179,6 +180,26 @@ export function syncNow(babyId: string | undefined, { force = false } = {}): Pro
     }
   })();
   return running;
+}
+
+// The first AI request is fire-and-forget right after upload; if it was lost (no signal, app closed),
+// ask again here. Recent notes only, a few per sync, each at most once per app session.
+const aiAsked = new Set<string>();
+const AI_RETRY_DAYS = 14;
+async function retryAi(babyId: string): Promise<boolean> {
+  const since = Date.now() - AI_RETRY_DAYS * 86_400_000;
+  const due = local
+    .listMemories(babyId)
+    .filter((m) => m.status === 'synced' && (m.raw_text?.trim().length ?? 0) >= 3 && (m.ai_status === null || m.ai_status === 'failed'))
+    .filter((m) => Date.parse(m.occurred_at) > since && !aiAsked.has(m.id))
+    .slice(0, 3);
+  let changed = false;
+  for (const m of due) {
+    aiAsked.add(m.id);
+    const { data } = await supabase.functions.invoke('ai-journal', { body: { memory_id: m.id, tz: deviceTz() } });
+    if (data?.status === 'done') changed = true;
+  }
+  return changed;
 }
 
 // Wake up when the earliest failed item is due, so backoff retries happen without user action.

@@ -323,4 +323,7 @@ export const ko: Record<string, string> = {
   "{n} days together": "함께한 지 {n}일",
   "First year": "첫 1년",
   "Milestone: {title}": "성장 순간: {title}",
+  "No suggestion for this note. A few more words usually help.": "이 메모는 제안할 문장이 없어요. 몇 마디 더 쓰면 제안을 받을 수 있어요.",
+  "AI suggestions are off for this note.": "이 메모는 AI 제안이 꺼져 있어요.",
+  "Preparing an AI suggestion…": "AI 제안을 준비하고 있어요…",
 };

@@ -29,6 +29,7 @@ export type LocalMemory = {
   milestone_candidate: number; // 0/1 (SQLite)
   milestone_title: string | null;
   author_name: string | null;
+  ai_status: string | null; // server: null (not yet), 'done', 'failed', 'skipped'
 };
 
 const db = openDatabaseSync('journal.db');
@@ -94,6 +95,8 @@ const LOCAL_MIGRATIONS = [
   // old path one more try. Anything still not allowed simply fails again and stays on the phone.
   `update memories set status = 'pending', attempts = 0, next_attempt_at = 0 where status = 'failed';
    update tracker_events set status = 'pending', attempts = 0, next_attempt_at = 0 where status = 'failed';`,
+  // Append only: installed apps run the entries after their stored version.
+  `alter table memories add column ai_status text;`,
 ];
 const localVersion = db.getFirstSync<{ user_version: number }>('pragma user_version')?.user_version ?? 0;
 LOCAL_MIGRATIONS.slice(localVersion).forEach((sql, i) => {
@@ -209,7 +212,7 @@ export function markFailed(id: string, error: string, attempts: number, nextAtte
   changed();
 }
 
-export type RemoteMemory = Pick<LocalMemory, 'id' | 'family_id' | 'baby_id' | 'author_id' | 'occurred_at' | 'type' | 'raw_text' | 'display_asset_id' | 'thumb_asset_id' | 'story_text' | 'milestone_title' | 'author_name'> & { milestone_candidate: boolean };
+export type RemoteMemory = Pick<LocalMemory, 'id' | 'family_id' | 'baby_id' | 'author_id' | 'occurred_at' | 'type' | 'raw_text' | 'display_asset_id' | 'thumb_asset_id' | 'story_text' | 'milestone_title' | 'author_name' | 'ai_status'> & { milestone_candidate: boolean };
 
 // Server rows never overwrite local edits that haven't synced yet.
 // Returns ids removed locally so the caller can delete their files.
@@ -218,16 +221,16 @@ export function mergeRemote(babyId: string, rows: RemoteMemory[], complete: bool
   db.withTransactionSync(() => {
     for (const r of rows) {
       db.runSync(
-        `insert into memories (id, family_id, baby_id, author_id, occurred_at, type, raw_text, display_asset_id, thumb_asset_id, story_text, milestone_candidate, milestone_title, author_name, status, server_seen)
-         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', 1)
+        `insert into memories (id, family_id, baby_id, author_id, occurred_at, type, raw_text, display_asset_id, thumb_asset_id, story_text, milestone_candidate, milestone_title, author_name, ai_status, status, server_seen)
+         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', 1)
          on conflict (id) do update set
            occurred_at = excluded.occurred_at, type = excluded.type, raw_text = excluded.raw_text,
            display_asset_id = excluded.display_asset_id, thumb_asset_id = excluded.thumb_asset_id,
            story_text = excluded.story_text, milestone_candidate = excluded.milestone_candidate, milestone_title = excluded.milestone_title,
-           author_name = excluded.author_name
+           author_name = excluded.author_name, ai_status = excluded.ai_status
          where memories.status = 'synced'`,
         r.id, r.family_id, r.baby_id, r.author_id, r.occurred_at, r.type, r.raw_text, r.display_asset_id, r.thumb_asset_id,
-        r.story_text, r.milestone_candidate ? 1 : 0, r.milestone_title, r.author_name,
+        r.story_text, r.milestone_candidate ? 1 : 0, r.milestone_title, r.author_name, r.ai_status,
       );
     }
     // Deleted elsewhere (e.g. by another family member): drop our synced copy.

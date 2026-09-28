@@ -173,7 +173,10 @@ async function journal(ctx: Ctx, memoryId: unknown) {
   if (hash === m.ai_input_hash && !ctx.regenerate) return json({ status: 'unchanged' });
 
   const ai = await prepare(ctx, m.family_id);
-  if (ai instanceof Response) return ai;
+  if (ai instanceof Response) {
+    if ((await ai.clone().json()).status === 'disabled') await ctx.admin.from('memories').update({ ai_status: 'skipped' }).eq('id', m.id);
+    return ai;
+  }
 
   const occurredOn = localDay(m.occurred_at, ctx.tz);
   const birth = (m.babies as unknown as { birth_date: string | null } | null)?.birth_date; // many-to-one embed

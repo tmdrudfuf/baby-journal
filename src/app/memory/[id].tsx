@@ -93,6 +93,26 @@ export default function MemoryScreen() {
           <Button variant="ghost" label={t('Cancel')} onPress={() => setDraft(null)} />
         </>
       )}
+      {canEdit && draft === null && memory.raw_text && !memory.story_text && !memory.milestone_candidate && memory.status === 'synced' && (
+        <Card>
+          <Text variant="caption" color="textSecondary">
+            {memory.ai_status === 'done'
+              ? t('No suggestion for this note. A few more words usually help.')
+              : memory.ai_status === 'failed'
+                ? t('AI suggestions are unavailable right now. Your memory is saved.')
+                : memory.ai_status === 'skipped'
+                  ? t('AI suggestions are off for this note.')
+                  : t('Preparing an AI suggestion…')}
+          </Text>
+          {memory.ai_status === 'failed' && (
+            <Actions>
+              <Button variant="chip" label={t('Try again')} onPress={() => act(async () => {
+                if (!(await regenerateStory(memory))) setAiError(t('AI suggestions are unavailable right now. Your memory is saved.'));
+              })} />
+            </Actions>
+          )}
+        </Card>
+      )}
       {canEdit && memory.milestone_candidate === 1 && memory.milestone_title && (
         <Card accessibilityRole="summary">
           <Text variant="caption" color="textSecondary">
