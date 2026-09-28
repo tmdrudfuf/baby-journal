@@ -71,6 +71,7 @@ Not deployed.
 2026-09-27: `npm run verify` ✅ (42 jest), Deno 10/10, pgTAP 88/88, `e2e:ai-local` 40/40, `e2e:billing-local` 16/16, staging `smoke:staging` + `smoke:ai` + `e2e:family` + `e2e:delete-account` ✅, CI ✅.
 
 ## Latest build
+- EAS preview APK 83902ad (arm64, staging; compact Today card): https://expo.dev/artifacts/eas/Av9A_Sn-lqRfnfW0dceMiofjP-U9jmezGRhMVCU0SXg.apk
 - EAS preview APK f21df4a (arm64, staging; Home photo strip): https://expo.dev/artifacts/eas/VyAHc_uV5DAmlY1aLYLncQ0uyEnotocKnxT02gR99T0.apk
 - EAS preview APK 2fa27d2 (arm64, staging; M2–M10; replaces d1034997, whose photo uploads staging now refuses): https://expo.dev/artifacts/eas/Q2WjmLmbDpyLpftJEXv5IMUdfxFd-ak_wYy0GfFVqrA.apk
 - Owner installed via computer → phone transfer (direct phone download stalled at 100%, likely Play Protect scan).
