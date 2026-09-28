@@ -56,6 +56,5 @@ https://tmdrudfuf.github.io/baby-journal/privacy.html
 ## Graphics checklist
 Drafts in `docs/store/assets/` (made from the emulator build):
 - `icon-512.png` (512×512) and `feature-graphic-1024x500.png`.
-- `screenshot-draft-{home,daily,memory,ask}.png` (1080×2160, Play allows at most 2:1). **Retake before
-  submission**: the AI text in them comes from the mock provider and they still show the old green palette.
-  Suggested set: Home, a memory with a milestone + suggestion, Daily Story, Ask your journal, Monthly memories, Plans.
+- `screenshot-ko-{home,daily,memory,journal}.png` (1080×2160, Korean UI, real OpenAI output on a demo family, pastel theme).
+  Add English versions and a Plans screenshot (with real Play prices) before submission if listing in English too.
