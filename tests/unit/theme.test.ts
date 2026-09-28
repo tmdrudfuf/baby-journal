@@ -22,6 +22,8 @@ describe.each(['light', 'dark'] as const)('%s theme contrast (AA 4.5:1)', (schem
     ['textSecondary on surface', c.textSecondary, c.surface],
     ['onPrimary', c.onPrimary, c.primary],
     ['onAccent', c.onAccent, c.accent],
+    ['link', c.link, c.background],
+    ['link on surface', c.link, c.surface],
   ])('%s', (_, fg, bg) => {
     expect(contrast(fg, bg)).toBeGreaterThanOrEqual(4.5);
   });

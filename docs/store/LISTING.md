@@ -57,5 +57,5 @@ https://tmdrudfuf.github.io/baby-journal/privacy.html
 Drafts in `docs/store/assets/` (made from the emulator build):
 - `icon-512.png` (512×512) and `feature-graphic-1024x500.png`.
 - `screenshot-draft-{home,daily,memory,ask}.png` (1080×2160, Play allows at most 2:1). **Retake before
-  submission**: the AI text in them comes from the mock provider, and store screenshots must show real output.
+  submission**: the AI text in them comes from the mock provider and they still show the old green palette.
   Suggested set: Home, a memory with a milestone + suggestion, Daily Story, Ask your journal, Monthly memories, Plans.

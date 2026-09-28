@@ -56,7 +56,7 @@ type ButtonProps = {
 export function Button({ label, onPress, variant = 'primary', disabled }: ButtonProps) {
   const theme = useTheme();
   const bg = variant === 'primary' ? theme.primary : variant === 'accent' ? theme.accent : 'transparent';
-  const fg = variant === 'primary' ? 'onPrimary' : variant === 'accent' ? 'onAccent' : 'primary';
+  const fg = variant === 'primary' ? 'onPrimary' : variant === 'accent' ? 'onAccent' : 'link';
   return (
     <Pressable
       accessibilityRole="button"

@@ -63,7 +63,7 @@ export default function RootLayout() {
     <ThemeProvider
       value={{
         ...navTheme,
-        colors: { ...navTheme.colors, background: theme.background, card: theme.background, primary: theme.primary, text: theme.text, border: theme.border },
+        colors: { ...navTheme.colors, background: theme.background, card: theme.background, primary: theme.link, text: theme.text, border: theme.border },
       }}>
       <StatusBar style={dark ? 'light' : 'dark'} />
       <AppProvider>
