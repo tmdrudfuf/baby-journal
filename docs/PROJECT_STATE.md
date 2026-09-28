@@ -70,6 +70,8 @@ Not deployed.
 ## Latest test result
 2026-09-27: `npm run verify` ✅ (42 jest), Deno 10/10, pgTAP 88/88, `e2e:ai-local` 40/40, `e2e:billing-local` 16/16, staging `smoke:staging` + `smoke:ai` + `e2e:family` + `e2e:delete-account` ✅, CI ✅.
 
+Owner device check 2026-09-27: APK 83902ad approved (Home: recent photo strip, compact Today card).
+
 ## Latest build
 - EAS preview APK 83902ad (arm64, staging; compact Today card): https://expo.dev/artifacts/eas/Av9A_Sn-lqRfnfW0dceMiofjP-U9jmezGRhMVCU0SXg.apk
 - EAS preview APK f21df4a (arm64, staging; Home photo strip): https://expo.dev/artifacts/eas/VyAHc_uV5DAmlY1aLYLncQ0uyEnotocKnxT02gR99T0.apk
