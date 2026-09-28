@@ -49,13 +49,14 @@ export function Card({ style, ...rest }: ViewProps) {
 type ButtonProps = {
   label: string;
   onPress?: () => void;
-  variant?: 'primary' | 'accent' | 'ghost';
+  variant?: 'primary' | 'accent' | 'ghost' | 'chip';
   disabled?: boolean;
 };
 
 export function Button({ label, onPress, variant = 'primary', disabled }: ButtonProps) {
   const theme = useTheme();
-  const bg = variant === 'primary' ? theme.primary : variant === 'accent' ? theme.accent : 'transparent';
+  const bg = variant === 'primary' ? theme.primary : variant === 'accent' ? theme.accent : variant === 'chip' ? theme.background : 'transparent';
+  const chip = variant === 'chip';
   const fg = variant === 'primary' ? 'onPrimary' : variant === 'accent' ? 'onAccent' : 'link';
   return (
     <Pressable
@@ -65,9 +66,11 @@ export function Button({ label, onPress, variant = 'primary', disabled }: Button
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
-        minHeight: TouchTarget,
+        minHeight: chip ? 48 : TouchTarget,
         borderRadius: Radius.pill,
-        paddingHorizontal: Spacing.lg,
+        paddingHorizontal: chip ? Spacing.md : Spacing.lg,
+        borderWidth: chip ? 1 : 0,
+        borderColor: theme.border,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: bg,
@@ -78,6 +81,11 @@ export function Button({ label, onPress, variant = 'primary', disabled }: Button
       </Text>
     </Pressable>
   );
+}
+
+// Secondary actions side by side (wraps on narrow screens) instead of a tall stack of buttons.
+export function Actions({ children }: { children: ReactNode }) {
+  return <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm }}>{children}</View>;
 }
 
 export function Field({ label, style, ...rest }: TextInputProps & { label: string }) {

@@ -6,7 +6,7 @@ import { MemoryImage } from '@/components/memory-image';
 import { Button, Card, Screen, Text } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { dayNumber, formatDate, formatTime, greeting, localDayKey, onThisDayLabel } from '@/lib/dates';
+import { ageLabel, dayNumber, formatDate, formatTime, greeting, localDayKey, onThisDayLabel } from '@/lib/dates';
 import { listEvents, listMemories, useLocal, type LocalMemory } from '@/lib/local-db';
 import { summarizeDay, summaryLine } from '@/lib/tracker';
 import { atLeast, useBaby } from '@/state/app';
@@ -55,6 +55,7 @@ export default function HomeScreen() {
     .map((m) => ({ m, label: onThisDayLabel(m.occurred_at, now) }))
     .filter((x): x is { m: typeof x.m; label: string } => x.label !== null);
   const day = baby.birth_date ? dayNumber(baby.birth_date, now) : null;
+  const age = baby.birth_date ? ageLabel(baby.birth_date, now) : null; // the day count is already the big line below
 
   return (
     <Screen>
@@ -63,7 +64,7 @@ export default function HomeScreen() {
       </Text>
       <View>
         <Text variant="display">{baby.name}</Text>
-        {day && day > 0 && <Text color="textSecondary">{t('Day {n}', { n: day })}</Text>}
+        {age && <Text color="textSecondary">{age}</Text>}
       </View>
 
       {hero && (

@@ -10,20 +10,21 @@ import { Button, Card, Field, Text } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDate, formatTime } from '@/lib/dates';
-import { listMemories, searchMemories, useLocal, type LocalMemory } from '@/lib/local-db';
+import { listMemories, listMilestones, searchMemories, useLocal, type LocalMemory } from '@/lib/local-db';
 import { monthsWithMemories, monthTitle } from '@/lib/monthly';
 import { syncNow } from '@/lib/sync';
 import { atLeast, useBaby } from '@/state/app';
 import { t } from '@/lib/i18n';
 
-function MemoryCard({ memory }: { memory: LocalMemory }) {
+function MemoryCard({ memory, milestone }: { memory: LocalMemory; milestone?: string }) {
   const hasPhoto = memory.thumb_path || memory.thumb_asset_id;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`Memory from ${formatDate(memory.occurred_at)}`} onPress={() => router.push(`/memory/${memory.id}`)}>
+    <Pressable accessibilityRole="button" accessibilityLabel={t('Memory from {date}', { date: formatDate(memory.occurred_at) })} onPress={() => router.push(`/memory/${memory.id}`)}>
       <Card>
         {hasPhoto && (
           <MemoryImage localUri={memory.photo_path} assetId={memory.display_asset_id} style={{ width: '100%', aspectRatio: 1, borderRadius: Radius.md }} />
         )}
+        {milestone && <Text variant="label">✨ {milestone}</Text>}
         {memory.raw_text && <Text numberOfLines={4}>{memory.raw_text}</Text>}
         <Text variant="caption" color="textSecondary">
           {formatDate(memory.occurred_at)} · {formatTime(memory.occurred_at)}
@@ -42,6 +43,7 @@ export default function JournalScreen() {
   const memories = useLocal(() => (searching ? searchMemories(baby.id, query) : listMemories(baby.id)));
   const months = searching ? [] : monthsWithMemories(memories.map((m) => m.occurred_at));
   const [refreshing, setRefreshing] = useState(false);
+  const milestoneOf = new Map(useLocal(() => listMilestones(baby.id)).map((m) => [m.memory_id, m.title]));
 
   async function refresh() {
     setRefreshing(true);
@@ -54,7 +56,7 @@ export default function JournalScreen() {
       <FlatList
         data={memories}
         keyExtractor={(m) => m.id}
-        renderItem={({ item }) => <MemoryCard memory={item} />}
+        renderItem={({ item }) => <MemoryCard memory={item} milestone={milestoneOf.get(item.id)} />}
         contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.md }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
         keyboardShouldPersistTaps="handled"

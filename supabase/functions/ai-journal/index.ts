@@ -12,6 +12,7 @@ import {
   DAILY_MIN_NOTES,
   estimateCostUsd,
   groundCitations,
+  nearCopy,
   sha256Hex,
   type AiProvider,
   type Usage,
@@ -180,6 +181,7 @@ async function journal(ctx: Ctx, memoryId: unknown) {
   try {
     const { result, usage } = await ai.journal({ text, occurredOn, babyAgeDays: ageDays(occurredOn, birth) });
     const s = cleanSuggestion(result);
+    if (nearCopy(text, s.story)) s.story = null; // milestone detection still counts
     await recordUsage(ctx, m.family_id, 'journal', started, usage);
     // raw_text is never touched. A story the parent edited is kept unless they asked to regenerate.
     const keepStory = m.story_edited && !ctx.regenerate;

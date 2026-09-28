@@ -1,4 +1,4 @@
-import { cleanSuggestion, estimateCostUsd, journalPrompt } from '../../supabase/functions/_shared/ai';
+import { cleanSuggestion, estimateCostUsd, journalPrompt, nearCopy } from '../../supabase/functions/_shared/ai';
 
 test('prompt carries only the note, date and age', () => {
   const p = journalPrompt({ text: '오늘 처음으로 혼자 뒤집었어.', occurredOn: '2026-09-26', babyAgeDays: 184 });
@@ -28,4 +28,11 @@ test('dated model snapshots use their base price', () => {
   const u = { provider: 'openai', model: 'gpt-5.4-mini-2026-03-17', inputTokens: 1_000_000, outputTokens: 1_000_000 };
   expect(estimateCostUsd(u)).toBeCloseTo(5.25);
   expect(estimateCostUsd({ ...u, model: 'gpt-5.4-minimal' })).toBe(0); // prefix must end at a dash
+});
+
+test('suggestions that only re-punctuate the note are treated as copies', () => {
+  expect(nearCopy('Grandma visited and Mia giggled', 'Grandma visited, and Mia giggled.')).toBe(true);
+  expect(nearCopy('할머니가 노래 불러주실 때마다 까르르 웃었다', '할머니가 노래 불러주실 때마다 까르르 웃었다.')).toBe(true);
+  expect(nearCopy('She rolled over', 'This morning, she rolled over by herself.')).toBe(false);
+  expect(nearCopy('note', null)).toBe(false);
 });

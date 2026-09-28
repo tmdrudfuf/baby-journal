@@ -5,10 +5,10 @@ import { Alert } from 'react-native';
 import { MemoryImage } from '@/components/memory-image';
 import { MemorySocial } from '@/components/memory-social';
 import { SyncBadge } from '@/components/sync-badge';
-import { Button, Card, Field, Screen, Text } from '@/components/ui';
+import { Actions, Button, Card, Field, Screen, Text } from '@/components/ui';
 import { Radius } from '@/constants/theme';
 import { formatDate, formatTime } from '@/lib/dates';
-import { getMemory, markDeleting, updateText, useLocal } from '@/lib/local-db';
+import { getMemory, listMilestones, markDeleting, updateText, useLocal } from '@/lib/local-db';
 import { confirmMilestone, discardStory, dismissMilestone, editStory, regenerateStory, syncNow } from '@/lib/sync';
 import { atLeast, useApp } from '@/state/app';
 import { t } from '@/lib/i18n';
@@ -17,6 +17,7 @@ export default function MemoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { baby, session } = useApp();
   const memory = useLocal(() => getMemory(id));
+  const savedMilestone = useLocal(() => (baby ? listMilestones(baby.id) : [])).find((m) => m.memory_id === id);
   const [draft, setDraft] = useState<string | null>(null);
   const [storyDraft, setStoryDraft] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -78,6 +79,7 @@ export default function MemoryScreen() {
           {t('Recorded by {name}', { name: memory.author_name })}
         </Text>
       )}
+      {savedMilestone && <Text variant="label">✨ {t('Milestone: {title}', { title: savedMilestone.title })}</Text>}
       <SyncBadge memory={memory} />
       {draft === null ? (
         <>
@@ -111,13 +113,13 @@ export default function MemoryScreen() {
             <>
               <Text>{memory.story_text}</Text>
               {canEdit && (
-                <>
-                  <Button label={t('Edit suggestion')} variant="ghost" onPress={() => setStoryDraft(memory.story_text ?? '')} />
-                  <Button label={t('Try another suggestion')} variant="ghost" onPress={() => act(async () => {
+                <Actions>
+                  <Button label={t('Edit')} variant="chip" onPress={() => setStoryDraft(memory.story_text ?? '')} />
+                  <Button label={t('Try another')} variant="chip" onPress={() => act(async () => {
                     if (!(await regenerateStory(memory))) setAiError(t('AI suggestions are unavailable right now. Your memory is saved.'));
                   })} />
-                  <Button label={t('Discard suggestion')} variant="ghost" onPress={() => act(() => discardStory(memory))} />
-                </>
+                  <Button label={t('Discard')} variant="chip" onPress={() => act(() => discardStory(memory))} />
+                </Actions>
               )}
             </>
           ) : (

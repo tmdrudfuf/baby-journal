@@ -1,7 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 
-import { Button, Card, Field, Text } from '@/components/ui';
+import { Actions, Button, Card, Field, Text } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { t, tn } from '@/lib/i18n';
 
@@ -79,9 +79,11 @@ export function DailyStory({ babyId, day, moments, notes, canEdit }: { babyId: s
           {canEdit && (
             <>
               {!story.saved && <Button label={t('Save to journal')} disabled={busy} onPress={() => save()} />}
-              <Button variant="ghost" label={t('Edit')} disabled={busy} onPress={() => setDraft(story.story_text ?? '')} />
-              <Button variant="ghost" label={t('Try another')} disabled={busy} onPress={() => write(true)} />
-              <Button variant="ghost" label={t('Discard')} disabled={busy} onPress={discard} />
+              <Actions>
+                <Button variant="chip" label={t('Edit')} disabled={busy} onPress={() => setDraft(story.story_text ?? '')} />
+                <Button variant="chip" label={t('Try another')} disabled={busy} onPress={() => write(true)} />
+                <Button variant="chip" label={t('Discard')} disabled={busy} onPress={discard} />
+              </Actions>
             </>
           )}
         </>

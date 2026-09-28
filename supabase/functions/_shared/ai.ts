@@ -116,6 +116,13 @@ export function journalPrompt(input: JournalInput): string {
   return `Date: ${input.occurredOn}\n${age}Parent's note:\n${input.text}`;
 }
 
+// A "suggestion" that only changes spacing or punctuation adds nothing on top of the parent's note.
+export function nearCopy(note: string, story: string | null): boolean {
+  if (!story) return false;
+  const norm = (x: string) => x.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+  return norm(note) === norm(story);
+}
+
 // Defensive cleanup of model output before it reaches the database.
 export function cleanSuggestion(raw: JournalSuggestion): JournalSuggestion {
   const tidy = (s: string | null, max: number) => {
