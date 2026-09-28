@@ -73,6 +73,7 @@ Not deployed.
 Owner device check 2026-09-27: APK 83902ad approved (Home: recent photo strip, compact Today card).
 
 ## Latest build
+- EAS preview APK (pastel theme + baby icon, 2026-09-27): https://expo.dev/artifacts/eas/73vcoYd1IaSScR-MdVYKEXCYqh4YmrgGoRVN2TDP8IQ.apk — arm64 only, so it will not start on the x86_64 emulator (expected); use a phone.
 - EAS preview APK 83902ad (arm64, staging; compact Today card): https://expo.dev/artifacts/eas/Av9A_Sn-lqRfnfW0dceMiofjP-U9jmezGRhMVCU0SXg.apk
 - EAS preview APK f21df4a (arm64, staging; Home photo strip): https://expo.dev/artifacts/eas/VyAHc_uV5DAmlY1aLYLncQ0uyEnotocKnxT02gR99T0.apk
 - EAS preview APK 2fa27d2 (arm64, staging; M2–M10; replaces d1034997, whose photo uploads staging now refuses): https://expo.dev/artifacts/eas/Q2WjmLmbDpyLpftJEXv5IMUdfxFd-ak_wYy0GfFVqrA.apk
