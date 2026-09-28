@@ -19,9 +19,9 @@ const COLORS = { book: '#9FD3BC', page: '#B8E0CD', face: '#FFD9C4', curl: '#E9A5
 const MONO = { book: '#000', page: '#000', face: '#000', curl: '#000', ink: '#000', cheek: null };
 const BG = '#FFF3EC';
 render('icon', svg(mark(COLORS), BG, 1), 1024);
-render('android-icon-foreground', svg(mark(COLORS), null, 0.62), 512); // adaptive safe zone
+render('android-icon-foreground', svg(mark(COLORS), null, 0.8), 512); // stays inside the adaptive safe circle (66%)
 render('android-icon-background', svg('', BG), 512);
-render('android-icon-monochrome', svg(mark(MONO), null, 0.62), 432);
+render('android-icon-monochrome', svg(mark(MONO), null, 0.8), 432);
 render('splash-icon', svg(mark(COLORS), null, 1), 512);
 render('favicon', svg(mark(COLORS), BG, 1), 48);
 console.log('rendered');
