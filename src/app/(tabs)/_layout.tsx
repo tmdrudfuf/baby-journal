@@ -5,9 +5,11 @@ import { View } from 'react-native';
 
 import { Radius, TouchTarget } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { t } from '@/lib/i18n';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
+// Titles are English keys, translated when rendered: t('Home') t('Journal') t('Capture') t('Growth') t('Family')
 const tabs: { name: string; title: string; icon: IconName }[] = [
   { name: 'index', title: 'Home', icon: 'home-outline' },
   { name: 'journal', title: 'Journal', icon: 'book-outline' },
@@ -33,8 +35,8 @@ export default function TabLayout() {
           key={name}
           name={name}
           options={{
-            title,
-            tabBarAccessibilityLabel: title,
+            title: t(title),
+            tabBarAccessibilityLabel: t(title),
             tabBarIcon: ({ color, size }) =>
               name === 'capture' ? (
                 // Capture is visually emphasized (§10).

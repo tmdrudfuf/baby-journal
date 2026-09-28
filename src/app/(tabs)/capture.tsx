@@ -12,6 +12,7 @@ import { insertMemory } from '@/lib/local-db';
 import { choosePhoto, recoverPendingPhoto, storePhoto, takePhoto, type PickedPhoto } from '@/lib/media';
 import { syncNow } from '@/lib/sync';
 import { atLeast, useApp, useBaby } from '@/state/app';
+import { t } from '@/lib/i18n';
 
 export default function CaptureScreen() {
   const baby = useBaby();
@@ -44,7 +45,7 @@ export default function CaptureScreen() {
         setCapturedAt(new Date());
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(e instanceof Error ? t(e.message) : String(e));
     }
   }
 
@@ -72,7 +73,7 @@ export default function CaptureScreen() {
       syncNow(baby.id); // background; the memory is already safe on the device
       router.navigate('/journal');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not save. Please try again.');
+      setError(e instanceof Error ? t(e.message) : t('Could not save. Try again.'));
     } finally {
       setBusy(false);
     }
@@ -81,9 +82,9 @@ export default function CaptureScreen() {
   if (!atLeast(baby.role, 'contributor')) {
     return (
       <Screen>
-        <Text variant="display">Capture</Text>
+        <Text variant="display">{t('Capture')}</Text>
         <Text color="textSecondary">
-          You can see, react to and comment on {baby.name}&apos;s memories. Ask a parent to make you a contributor to add your own.
+          {t("You can see, react to and comment on {name}'s memories. Ask a parent to make you a contributor to add your own.", { name: baby.name })}
         </Text>
       </Screen>
     );
@@ -91,32 +92,32 @@ export default function CaptureScreen() {
 
   return (
     <Screen>
-      <Text variant="display">Capture</Text>
+      <Text variant="display">{t('Capture')}</Text>
       {photo ? (
         <View style={{ gap: Spacing.sm }}>
-          <MemoryImage localUri={photo.uri} assetId={null} style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: Radius.lg }} label="Selected photo" />
-          <Button variant="ghost" label="Remove photo" onPress={() => setPhoto(null)} />
+          <MemoryImage localUri={photo.uri} assetId={null} style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: Radius.lg }} label={t('Selected photo')} />
+          <Button variant="ghost" label={t('Remove photo')} onPress={() => setPhoto(null)} />
         </View>
       ) : (
         <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
           <View style={{ flex: 1 }}>
-            <Button label="Camera" onPress={() => pick('camera')} />
+            <Button label={t('Camera')} onPress={() => pick('camera')} />
           </View>
           <View style={{ flex: 1 }}>
-            <Button label="Photos" onPress={() => pick('library')} />
+            <Button label={t('Photos')} onPress={() => pick('library')} />
           </View>
         </View>
       )}
       <Field
-        label="What happened?"
+        label={t('What happened?')}
         value={text}
         onChangeText={setText}
-        placeholder="A few words are enough"
+        placeholder={t('A few words are enough')}
         multiline
         style={{ minHeight: 120, textAlignVertical: 'top' }}
       />
       {error && <Text color="textSecondary">{error}</Text>}
-      <Button label="Save memory" variant="accent" onPress={save} disabled={busy || (!photo && !text.trim())} />
+      <Button label={t('Save memory')} variant="accent" onPress={save} disabled={busy || (!photo && !text.trim())} />
       <QuickLog />
     </Screen>
   );

@@ -14,6 +14,7 @@ import { listMemories, searchMemories, useLocal, type LocalMemory } from '@/lib/
 import { monthsWithMemories, monthTitle } from '@/lib/monthly';
 import { syncNow } from '@/lib/sync';
 import { atLeast, useBaby } from '@/state/app';
+import { t } from '@/lib/i18n';
 
 function MemoryCard({ memory }: { memory: LocalMemory }) {
   const hasPhoto = memory.thumb_path || memory.thumb_asset_id;
@@ -59,23 +60,23 @@ export default function JournalScreen() {
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <>
-            <Text variant="display">Journal</Text>
-            <Field label="Search" value={query} onChangeText={setQuery} placeholder="First smile, bath, Grandma…" returnKeyType="search" />
+            <Text variant="display">{t('Journal')}</Text>
+            <Field label={t('Search')} value={query} onChangeText={setQuery} placeholder={t('First smile, bath, Grandma…')} returnKeyType="search" />
             <AskJournal babyId={baby.id} question={query} canEdit={atLeast(baby.role, 'contributor')} />
             {months.length > 0 && (
               <>
                 <Text variant="label" style={{ marginTop: Spacing.md }}>
-                  Monthly memories
+                  {t('Monthly memories')}
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm, paddingVertical: Spacing.sm }}>
                   {baby.birth_date && (
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`${baby.name}'s first year`}
+                      accessibilityLabel={t("{name}'s first year", { name: baby.name })}
                       onPress={() => router.push('/year/1')}
                       style={{ backgroundColor: theme.primary, borderRadius: Radius.pill, paddingHorizontal: Spacing.lg, minHeight: 48, justifyContent: 'center' }}>
                       <Text variant="label" color="onPrimary">
-                        ★ First year
+                        ★ {t('First year')}
                       </Text>
                     </Pressable>
                   )}
@@ -99,12 +100,12 @@ export default function JournalScreen() {
         ListEmptyComponent={
           searching ? (
             <Card>
-              <Text color="textSecondary">No memories contain the exact words “{query.trim()}”.</Text>
+              <Text color="textSecondary">{t('No memories contain the exact words “{q}”.', { q: query.trim() })}</Text>
             </Card>
           ) : (
           <Card>
-            <Text color="textSecondary">Your memories will appear here, newest first.</Text>
-            <Button label="Capture the first one" variant="accent" onPress={() => router.navigate('/capture')} />
+            <Text color="textSecondary">{t('Your memories will appear here, newest first.')}</Text>
+            <Button label={t('Capture the first one')} variant="accent" onPress={() => router.navigate('/capture')} />
           </Card>
           )
         }

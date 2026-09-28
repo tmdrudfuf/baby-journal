@@ -5,6 +5,7 @@ import { Pressable } from 'react-native';
 import { Button, Card, Text } from '@/components/ui';
 import { formatDate } from '@/lib/dates';
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 
 type Source = { id: string; occurred_at: string; raw_text: string | null };
 type Result = { answer: string | null; sources: Source[]; note: string | null; needsPlan: boolean };
@@ -37,8 +38,8 @@ export function AskJournal({ babyId, question, canEdit }: { babyId: string; ques
       note: data.answer
         ? null
         : data.sources.length
-          ? `${needsPlan ? 'AI answers are part of Plus. ' : ''}Here are the memories that seem related.`
-          : 'Nothing in your journal seems related yet.',
+          ? `${needsPlan ? t('AI answers are part of Plus.') + ' ' : ''}${t('Here are the memories that seem related.')}`
+          : t('Nothing in your journal seems related yet.'),
       needsPlan,
     });
   }
@@ -46,7 +47,7 @@ export function AskJournal({ babyId, question, canEdit }: { babyId: string; ques
   if (q.length < 3) return null;
   return (
     <>
-      <Button variant="ghost" label={busy ? 'Looking through your journal…' : `Ask your journal: “${q}”`} disabled={busy} onPress={ask} />
+      <Button variant="ghost" label={busy ? t('Looking through your journal…') : t('Ask your journal: “{q}”', { q })} disabled={busy} onPress={ask} />
       {result && asked === q && (
         <Card>
           {result.answer && <Text>{result.answer}</Text>}
@@ -56,10 +57,10 @@ export function AskJournal({ babyId, question, canEdit }: { babyId: string; ques
               <Text variant="caption" color="textSecondary">
                 {formatDate(s.occurred_at)}
               </Text>
-              <Text numberOfLines={2}>{s.raw_text ?? 'Photo'}</Text>
+              <Text numberOfLines={2}>{s.raw_text ?? t('Photo')}</Text>
             </Pressable>
           ))}
-          {result.needsPlan && <Button variant="ghost" label="See plans" onPress={() => router.push('/plans')} />}
+          {result.needsPlan && <Button variant="ghost" label={t('See plans')} onPress={() => router.push('/plans')} />}
         </Card>
       )}
     </>

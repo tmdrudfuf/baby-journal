@@ -5,6 +5,7 @@ import { Text } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { LocalMemory } from '@/lib/local-db';
+import { t } from '@/lib/i18n';
 
 // Works for anything in the upload queue (memories, tracker events).
 export function SyncBadge({ memory }: { memory: Pick<LocalMemory, 'status' | 'attempts' | 'last_error'> }) {
@@ -17,11 +18,11 @@ export function SyncBadge({ memory }: { memory: Pick<LocalMemory, 'status' | 'at
       <Text variant="caption" color="textSecondary" style={{ flex: 1 }}>
         {memory.status === 'failed'
           ? /quota/i.test(memory.last_error ?? '')
-            ? 'Family storage is full. Kept on this phone.'
-            : `Couldn't upload (${memory.last_error ?? 'not allowed'}). Kept on this phone.`
+            ? t('Family storage is full. Kept on this phone.')
+            : t("Couldn't upload ({reason}). Kept on this phone.", { reason: t(memory.last_error ?? 'not allowed') })
           : memory.attempts > 0
-            ? 'Will upload when online'
-            : 'Uploading…'}
+            ? t('Will upload when online')
+            : t('Uploading…')}
       </Text>
     </View>
   );

@@ -11,6 +11,7 @@ import { track } from '@/lib/analytics';
 import { syncNow } from '@/lib/sync';
 import { describe, parseMeasure, type EventKind } from '@/lib/tracker';
 import { useApp, useBaby } from '@/state/app';
+import { t } from '@/lib/i18n';
 
 type Panel = null | 'feed' | 'diaper' | 'growth' | 'bottle';
 
@@ -47,8 +48,8 @@ export function QuickLog() {
     };
     insertEvent(e);
     track('quick_log', { kind });
-    const text = kind === 'sleep' ? 'Sleep started' : describe({ ...e, data }, new Date());
-    setLast({ id: e.id, text: `${text} at ${formatTime(now)}` });
+    const text = kind === 'sleep' ? t('Sleep started') : describe({ ...e, data }, new Date());
+    setLast({ id: e.id, text: t('{what} at {time}', { what: text, time: formatTime(now) }) });
     setPanel(null);
     setAmount('');
     syncNow(baby.id);
@@ -57,7 +58,7 @@ export function QuickLog() {
   // Takes the id as an argument: the React Compiler would otherwise read sleeping.id during render.
   function wake(sleepId: string) {
     endEvent(sleepId, new Date().toISOString());
-    setLast({ id: '', text: `Woke up at ${formatTime(new Date().toISOString())}` });
+    setLast({ id: '', text: t('Woke up at {time}', { time: formatTime(new Date().toISOString()) }) });
     syncNow(baby.id);
   }
 
@@ -82,25 +83,25 @@ export function QuickLog() {
 
   return (
     <Card>
-      <Text variant="label">Quick log</Text>
+      <Text variant="label">{t('Quick log')}</Text>
       {sleeping ? (
-        <Button label={`Wake up · asleep since ${formatTime(sleeping.started_at)}`} variant="accent" onPress={() => wake(sleeping.id)} />
+        <Button label={t('Wake up · asleep since {time}', { time: formatTime(sleeping.started_at) })} variant="accent" onPress={() => wake(sleeping.id)} />
       ) : null}
       <Row>
         <Cell>
-          <Button label="Feed" onPress={() => setPanel(panel === 'feed' ? null : 'feed')} />
+          <Button label={t('Feed')} onPress={() => setPanel(panel === 'feed' ? null : 'feed')} />
         </Cell>
         <Cell>
-          {!sleeping && <Button label="Sleep" onPress={() => log('sleep')} />}
-          {sleeping && <Button label="Sleeping…" disabled />}
+          {!sleeping && <Button label={t('Sleep')} onPress={() => log('sleep')} />}
+          {sleeping && <Button label={t('Sleeping…')} disabled />}
         </Cell>
       </Row>
       <Row>
         <Cell>
-          <Button label="Diaper" onPress={() => setPanel(panel === 'diaper' ? null : 'diaper')} />
+          <Button label={t('Diaper')} onPress={() => setPanel(panel === 'diaper' ? null : 'diaper')} />
         </Cell>
         <Cell>
-          <Button label="Growth" onPress={() => setPanel(panel === 'growth' ? null : 'growth')} />
+          <Button label={t('Growth')} onPress={() => setPanel(panel === 'growth' ? null : 'growth')} />
         </Cell>
       </Row>
 
@@ -108,27 +109,27 @@ export function QuickLog() {
         <>
           <Row>
             <Cell>
-              <Button variant="ghost" label="Breast L" onPress={() => log('feed', { method: 'breast', side: 'left' })} />
+              <Button variant="ghost" label={t('Breast L')} onPress={() => log('feed', { method: 'breast', side: 'left' })} />
             </Cell>
             <Cell>
-              <Button variant="ghost" label="Breast R" onPress={() => log('feed', { method: 'breast', side: 'right' })} />
+              <Button variant="ghost" label={t('Breast R')} onPress={() => log('feed', { method: 'breast', side: 'right' })} />
             </Cell>
           </Row>
           <Row>
             <Cell>
-              <Button variant="ghost" label="Bottle" onPress={() => setPanel('bottle')} />
+              <Button variant="ghost" label={t('Bottle')} onPress={() => setPanel('bottle')} />
             </Cell>
             <Cell>
-              <Button variant="ghost" label="Solid food" onPress={() => log('feed', { method: 'solid' })} />
+              <Button variant="ghost" label={t('Solid food')} onPress={() => log('feed', { method: 'solid' })} />
             </Cell>
           </Row>
         </>
       )}
       {panel === 'bottle' && (
         <>
-          <Field label="Amount (ml, optional)" value={amount} onChangeText={setAmount} keyboardType="numeric" autoFocus />
+          <Field label={t('Amount (ml, optional)')} value={amount} onChangeText={setAmount} keyboardType="numeric" autoFocus />
           <Button
-            label="Log bottle"
+            label={t('Log bottle')}
             onPress={() => {
               const ml = parseMeasure(amount, 500);
               log('feed', ml ? { method: 'bottle', amount_ml: Math.round(ml) } : { method: 'bottle' });
@@ -139,22 +140,22 @@ export function QuickLog() {
       {panel === 'diaper' && (
         <Row>
           <Cell>
-            <Button variant="ghost" label="Wet" onPress={() => log('diaper', { type: 'wet' })} />
+            <Button variant="ghost" label={t('Wet')} onPress={() => log('diaper', { type: 'wet' })} />
           </Cell>
           <Cell>
-            <Button variant="ghost" label="Dirty" onPress={() => log('diaper', { type: 'dirty' })} />
+            <Button variant="ghost" label={t('Dirty')} onPress={() => log('diaper', { type: 'dirty' })} />
           </Cell>
           <Cell>
-            <Button variant="ghost" label="Both" onPress={() => log('diaper', { type: 'both' })} />
+            <Button variant="ghost" label={t('Both')} onPress={() => log('diaper', { type: 'both' })} />
           </Cell>
         </Row>
       )}
       {panel === 'growth' && (
         <>
-          <Field label="Weight (kg)" value={growth.weight} onChangeText={(weight) => setGrowth({ ...growth, weight })} keyboardType="decimal-pad" />
-          <Field label="Height (cm)" value={growth.height} onChangeText={(height) => setGrowth({ ...growth, height })} keyboardType="decimal-pad" />
-          <Field label="Head (cm)" value={growth.head} onChangeText={(head) => setGrowth({ ...growth, head })} keyboardType="decimal-pad" />
-          <Button label="Save measurement" onPress={saveGrowth} />
+          <Field label={t('Weight (kg)')} value={growth.weight} onChangeText={(weight) => setGrowth({ ...growth, weight })} keyboardType="decimal-pad" />
+          <Field label={t('Height (cm)')} value={growth.height} onChangeText={(height) => setGrowth({ ...growth, height })} keyboardType="decimal-pad" />
+          <Field label={t('Head (cm)')} value={growth.head} onChangeText={(head) => setGrowth({ ...growth, head })} keyboardType="decimal-pad" />
+          <Button label={t('Save measurement')} onPress={saveGrowth} />
         </>
       )}
 
@@ -163,7 +164,7 @@ export function QuickLog() {
           <Text color="textSecondary" style={{ flex: 1 }} accessibilityLiveRegion="polite">
             ✓ {last.text}
           </Text>
-          {last.id ? <Button variant="ghost" label="Undo" onPress={undo} /> : null}
+          {last.id ? <Button variant="ghost" label={t('Undo')} onPress={undo} /> : null}
         </View>
       )}
     </Card>

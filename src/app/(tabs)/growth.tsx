@@ -6,8 +6,9 @@ import { Spacing, TouchTarget } from '@/constants/theme';
 import { formatDate, formatTime, localDayKey } from '@/lib/dates';
 import { latestEvent, listEvents, markEventDeleting, useLocal, type LocalEvent } from '@/lib/local-db';
 import { syncNow } from '@/lib/sync';
-import { describe, summarizeDay, summaryLine } from '@/lib/tracker';
+import { describe, measurement, summarizeDay, summaryLine } from '@/lib/tracker';
 import { atLeast, useApp, useBaby } from '@/state/app';
+import { t } from '@/lib/i18n';
 
 const DAYS_SHOWN = 7;
 const parse = (e: LocalEvent) => ({ ...e, data: JSON.parse(e.data) as Record<string, unknown> });
@@ -31,10 +32,10 @@ export default function GrowthScreen() {
   function remove(e: ReturnType<typeof parse>) {
     const mine = e.author_id === session?.user.id;
     if (!((mine && atLeast(baby.role, 'contributor')) || atLeast(baby.role, 'caregiver'))) return;
-    Alert.alert('Delete this entry?', describe(e, new Date()), [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('Delete this entry?'), describe(e, new Date()), [
+      { text: t('Cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('Delete'),
         style: 'destructive',
         onPress: () => {
           markEventDeleting(e.id);
@@ -46,16 +47,16 @@ export default function GrowthScreen() {
 
   return (
     <Screen>
-      <Text variant="display">Growth</Text>
+      <Text variant="display">{t('Growth')}</Text>
       <Card>
-        <Text variant="label">Today</Text>
+        <Text variant="label">{t('Today')}</Text>
         <Text>{summaryLine(today)}</Text>
-        {today.sleeping && <Text color="textSecondary">Sleeping now</Text>}
+        {today.sleeping && <Text color="textSecondary">{t('Sleeping now')}</Text>}
       </Card>
       {growth && (
         <Card>
-          <Text variant="label">Latest measurement</Text>
-          <Text>{describe(parse(growth), now).replace('Growth · ', '')}</Text>
+          <Text variant="label">{t('Latest measurement')}</Text>
+          <Text>{measurement(parse(growth).data)}</Text>
           <Text variant="caption" color="textSecondary">
             {formatDate(growth.started_at)}
           </Text>
@@ -63,7 +64,7 @@ export default function GrowthScreen() {
       )}
       {events.length === 0 && (
         <Card>
-          <Text color="textSecondary">Log feeds, sleep and diapers from the Capture tab. Most take one tap.</Text>
+          <Text color="textSecondary">{t('Log feeds, sleep and diapers from the Capture tab. Most take one tap.')}</Text>
         </Card>
       )}
       {[...byDay.entries()].map(([key, list]) => (
@@ -73,8 +74,8 @@ export default function GrowthScreen() {
             <Pressable
               key={e.id}
               accessibilityRole="button"
-              accessibilityHint="Long press to delete this entry"
-              accessibilityActions={[{ name: 'longpress', label: 'Delete entry' }]}
+              accessibilityHint={t('Long press to delete this entry')}
+              accessibilityActions={[{ name: 'longpress', label: t('Delete entry') }]}
               onAccessibilityAction={() => remove(e)}
               onLongPress={() => remove(e)}
               style={{ flexDirection: 'row', gap: Spacing.md, minHeight: TouchTarget, alignItems: 'center' }}>
@@ -89,7 +90,7 @@ export default function GrowthScreen() {
       ))}
       {events.length > 0 && (
         <Text variant="caption" color="textSecondary">
-          Press and hold an entry to delete it.
+          {t('Press and hold an entry to delete it.')}
         </Text>
       )}
     </Screen>

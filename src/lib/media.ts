@@ -2,6 +2,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
+import { t } from '@/lib/i18n';
 
 export type PickedPhoto = { uri: string; width: number; height: number };
 
@@ -16,7 +17,7 @@ function first(result: ImagePicker.ImagePickerResult): PickedPhoto | null {
 
 export async function takePhoto(): Promise<PickedPhoto | null> {
   const perm = await ImagePicker.requestCameraPermissionsAsync();
-  if (!perm.granted) throw new Error('Camera permission is needed to take a photo.');
+  if (!perm.granted) throw new Error(t('Camera permission is needed to take a photo.'));
   return first(await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 1 }));
 }
 

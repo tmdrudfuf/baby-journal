@@ -7,27 +7,30 @@ import { track } from '@/lib/analytics';
 import { accountTag, getStore, manageUrl, verify, type Offer, type VerifyResult } from '@/lib/billing';
 import { supabase } from '@/lib/supabase';
 import { useApp, useBaby } from '@/state/app';
+import { t } from '@/lib/i18n';
 
 type Plan = { id: string; storage_bytes: number; max_members: number; originals: boolean; ai_daily: boolean; ai_ask: boolean };
 
-const LABEL: Record<string, string> = { free: 'Free', plus: 'Plus', family: 'Family' };
+const label = (id: string) => ({ free: t('Free'), plus: t('Plus'), family: t('Family') })[id] ?? id;
 const gb = (b: number) => `${Math.round(b / 1024 ** 3)} GB`;
 const features = (p: Plan) =>
   [
-    `${gb(p.storage_bytes)} photo storage`,
-    `Up to ${p.max_members} family members`,
-    p.ai_daily && 'AI Daily Story',
-    p.ai_ask && 'Ask your journal (AI answers)',
-    p.originals && 'Original-quality backup',
+    t('{size} photo storage', { size: gb(p.storage_bytes) }),
+    t('Up to {n} family members', { n: p.max_members }),
+    p.ai_daily && t('AI Daily Story'),
+    p.ai_ask && t('Ask your journal (AI answers)'),
+    p.originals && t('Original-quality backup'),
   ].filter(Boolean) as string[];
 
-const MESSAGES: Record<string, string> = {
-  pending: 'Your payment is pending. Your plan updates as soon as Google Play confirms it.',
-  'not configured': 'Subscriptions are not available yet.',
-  'store error': 'Google Play could not be reached. Try again or use Restore purchases later.',
-};
+const messages = (): Record<string, string> => ({
+  pending: t('Your payment is pending. Your plan updates as soon as Google Play confirms it.'),
+  'not configured': t('Subscriptions are not available yet.'),
+  'store error': t('Google Play could not be reached. Try again or use Restore purchases later.'),
+});
 const describe = (r: VerifyResult) =>
-  r.status === 'done' ? `You're on ${LABEL[r.plan_id ?? ''] ?? r.plan_id}. Thank you!` : (MESSAGES[r.status] ?? MESSAGES[r.reason ?? ''] ?? 'Something went wrong.');
+  r.status === 'done'
+    ? t("You're on {plan}. Thank you!", { plan: label(r.plan_id ?? '') })
+    : (messages()[r.status] ?? messages()[r.reason ?? ''] ?? t('Something went wrong.'));
 
 export default function PlansScreen() {
   const baby = useBaby();
@@ -56,7 +59,7 @@ export default function PlansScreen() {
     try {
       setMessage(await fn());
     } catch {
-      setMessage('The purchase was not completed.');
+      setMessage(t('The purchase was not completed.'));
     }
     setBusy(false);
     load();
@@ -76,7 +79,7 @@ export default function PlansScreen() {
   const restore = () =>
     run(async () => {
       const owned = await (await getStore()).owned();
-      if (!owned.length) return 'No subscriptions found for this Google account.';
+      if (!owned.length) return t('No subscriptions found for this Google account.');
       let last: VerifyResult = { status: 'unavailable' };
       for (const o of owned) last = await verify(baby.family_id, o);
       return describe(last);
@@ -84,18 +87,19 @@ export default function PlansScreen() {
 
   return (
     <Screen>
-      <Text variant="display">Plans</Text>
+      <Text variant="display">{t('Plans')}</Text>
       <Text color="textSecondary">
-        Your memories always stay yours. If a subscription ends, nothing is deleted: you keep viewing and downloading everything, and only new
-        uploads beyond the Free storage pause.
+        {t(
+          'Your memories always stay yours. If a subscription ends, nothing is deleted: you keep viewing and downloading everything, and only new uploads beyond the Free storage pause.',
+        )}
       </Text>
       {plans.map((p) => {
         const planOffers = (offers ?? []).filter((o) => o.productId.startsWith(`${p.id}_`));
         return (
           <Card key={p.id}>
             <Text variant="title">
-              {LABEL[p.id] ?? p.id}
-              {current === p.id ? ' · your plan' : ''}
+              {label(p.id)}
+              {current === p.id ? t(' · your plan') : ''}
             </Text>
             {features(p).map((f) => (
               <Text key={f} color="textSecondary">
@@ -109,18 +113,19 @@ export default function PlansScreen() {
               ))}
             {planOffers.length > 0 && (
               <Text variant="caption" color="textSecondary">
-                Renews automatically at the price shown until you cancel in Google Play. Cancel anytime; the plan stays until the end of the paid
-                period.
+                {t(
+                  'Renews automatically at the price shown until you cancel in Google Play. Cancel anytime; the plan stays until the end of the paid period.',
+                )}
               </Text>
             )}
           </Card>
         );
       })}
-      {!isOwner && <Text color="textSecondary">Only the family owner can change the plan.</Text>}
-      {offers !== null && offers.length === 0 && <Text color="textSecondary">Subscriptions are not available on this device yet.</Text>}
+      {!isOwner && <Text color="textSecondary">{t('Only the family owner can change the plan.')}</Text>}
+      {offers !== null && offers.length === 0 && <Text color="textSecondary">{t('Subscriptions are not available on this device yet.')}</Text>}
       {message && <Text>{message}</Text>}
-      {isOwner && <Button variant="ghost" label="Restore purchases" disabled={busy} onPress={restore} />}
-      <Button variant="ghost" label="Manage subscription in Google Play" onPress={() => Linking.openURL(manageUrl())} />
+      {isOwner && <Button variant="ghost" label={t('Restore purchases')} disabled={busy} onPress={restore} />}
+      <Button variant="ghost" label={t('Manage subscription in Google Play')} onPress={() => Linking.openURL(manageUrl())} />
     </Screen>
   );
 }

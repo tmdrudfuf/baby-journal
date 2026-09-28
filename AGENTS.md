@@ -34,6 +34,7 @@ Runs lint, typecheck and unit tests. Database/RLS tests run with `npm run db:tes
 - Expo SDK changes often: check the `expo` major in `package.json` and read https://docs.expo.dev/versions/v<major>.0.0/ before touching Expo APIs.
 - Add packages with `npx expo install <pkg>` (add `-- -D` for dev deps).
 - `android/` and `ios/` are generated (CNG). Configure native behaviour via `app.json` / config plugins only.
+- UI text is English source strings wrapped in `t()` / `tn()` (`src/lib/i18n.ts`); add the Korean to `src/i18n/ko.ts`. `tests/unit/i18n.test.ts` fails on any untranslated string.
 
 ## Layout
 

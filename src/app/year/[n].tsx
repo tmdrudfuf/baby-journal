@@ -12,11 +12,10 @@ import { Radius, Spacing } from '@/constants/theme';
 import { track } from '@/lib/analytics';
 import { formatDate } from '@/lib/dates';
 import { listEvents, listMemories, listMilestones, useLocal, type LocalMemory } from '@/lib/local-db';
-import { plural } from '@/lib/tracker';
+import { t, tn } from '@/lib/i18n';
 import { buildYearStory, type YearStory } from '@/lib/yearly';
 import { useBaby } from '@/state/app';
 
-const ORDINAL = ['first', 'second', 'third', 'fourth', 'fifth'];
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c);
 const lastDay = (to: Date) => new Date(to.getTime() - 86_400_000).toISOString();
 
@@ -41,28 +40,28 @@ async function storyHtml(story: YearStory, title: string, byId: Map<string, Loca
     story.months.map(async (mo) => {
       const m = mo.highlight ? byId.get(mo.highlight.id) : undefined;
       const img = m ? await photoDataUri(m) : null;
-      return `<section class="month"><h2>Month ${mo.index}</h2>
+      return `<section class="month"><h2>${esc(t('Month {n}', { n: mo.index }))}</h2>
         ${img ? `<img src="${img}">` : ''}
         ${mo.highlight?.milestone ? `<p class="ms">✨ ${esc(mo.highlight.milestone)}</p>` : ''}
         ${m?.raw_text ? `<p>${esc(m.raw_text)}</p>` : ''}
-        <p class="date">${m ? esc(formatDate(m.occurred_at)) : 'No moments saved this month.'}</p>
+        <p class="date">${esc(m ? formatDate(m.occurred_at) : t('No moments saved this month.'))}</p>
       </section>`;
     }),
   );
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     @page { size: A5; margin: 14mm; }
-    body { font-family: Georgia, serif; color: #2E2A26; }
-    h1 { font-size: 30px; margin: 0 0 4px; } h2 { font-size: 18px; color: #4F6B53; }
-    .sub, .date { color: #6B625A; font-size: 12px; } .ms { color: #B0643A; font-weight: bold; }
+    body { font-family: Georgia, serif; color: #3B2F2A; }
+    h1 { font-size: 30px; margin: 0 0 4px; } h2 { font-size: 18px; color: #2F6B54; }
+    .sub, .date { color: #6B5750; font-size: 12px; } .ms { color: #B0643A; font-weight: bold; }
     .cover { page-break-after: always; padding-top: 40%; text-align: center; }
     .month { page-break-inside: avoid; margin-bottom: 18px; }
     img { width: 100%; border-radius: 10px; }
     ul { padding-left: 18px; }
   </style></head><body>
     <div class="cover"><h1>${esc(title)}</h1>
-      <p class="sub">${esc(formatDate(story.from.toISOString()))} – ${story.complete ? esc(formatDate(lastDay(story.to))) : 'so far'}</p>
-      <p class="sub">${plural(story.counts.memories, 'moment')} · ${plural(story.counts.photos, 'photo')}</p></div>
-    ${story.milestones.length ? `<h2>Milestones</h2><ul>${story.milestones.map((m) => `<li>${esc(formatDate(`${m.occurred_on}T12:00:00`))} — ${esc(m.title)}</li>`).join('')}</ul>` : ''}
+      <p class="sub">${esc(formatDate(story.from.toISOString()))} – ${story.complete ? esc(formatDate(lastDay(story.to))) : esc(t('so far'))}</p>
+      <p class="sub">${esc(tn(story.counts.memories, '{n} moment', '{n} moments'))} · ${esc(tn(story.counts.photos, '{n} photo', '{n} photos'))}</p></div>
+    ${story.milestones.length ? `<h2>${esc(t('Milestones'))}</h2><ul>${story.milestones.map((m) => `<li>${esc(formatDate(`${m.occurred_on}T12:00:00`))} — ${esc(m.title)}</li>`).join('')}</ul>` : ''}
     ${months.join('\n')}
   </body></html>`;
 }
@@ -81,7 +80,7 @@ export default function YearScreen() {
   if (!baby.birth_date) {
     return (
       <Screen>
-        <Text color="textSecondary">Add {baby.name}&apos;s birthday to see the yearly story.</Text>
+        <Text color="textSecondary">{t("Add {name}'s birthday to see the yearly story.", { name: baby.name })}</Text>
       </Screen>
     );
   }
@@ -101,11 +100,12 @@ export default function YearScreen() {
     milestones,
     events,
   );
-  const title = year <= ORDINAL.length ? `${baby.name}'s ${ORDINAL[year - 1]} year` : `${baby.name}'s year ${year}`;
+  const ordinal = [t("{name}'s first year"), t("{name}'s second year"), t("{name}'s third year"), t("{name}'s fourth year"), t("{name}'s fifth year")];
+  const title = (ordinal[year - 1] ?? t("{name}'s year {n}")).replace('{name}', baby.name).replace('{n}', String(year));
 
   async function savePdf() {
     setBusy(true);
-    setMessage('Making your PDF…');
+    setMessage(t('Making your PDF…'));
     try {
       const { uri } = await Print.printToFileAsync({ html: await storyHtml(story, title, byId) });
       // A readable file name instead of a random id.
@@ -115,7 +115,7 @@ export default function YearScreen() {
       setMessage(null);
       await Sharing.shareAsync(named.uri, { mimeType: 'application/pdf', dialogTitle: title, UTI: 'com.adobe.pdf' });
     } catch {
-      setMessage('Could not make the PDF. Please try again.');
+      setMessage(t('Could not make the PDF. Try again.'));
     } finally {
       setBusy(false);
     }
@@ -125,16 +125,17 @@ export default function YearScreen() {
     <Screen>
       <Text variant="display">{title}</Text>
       <Text color="textSecondary">
-        {formatDate(story.from.toISOString())} – {story.complete ? formatDate(lastDay(story.to)) : 'so far'}
+        {formatDate(story.from.toISOString())} – {story.complete ? formatDate(lastDay(story.to)) : t('so far')}
       </Text>
       <Card>
         <Text>
-          {plural(story.counts.memories, 'moment')} · {plural(story.counts.photos, 'photo')} · {plural(story.counts.feeds, 'feed')} logged
+          {tn(story.counts.memories, '{n} moment', '{n} moments')} · {tn(story.counts.photos, '{n} photo', '{n} photos')} ·{' '}
+          {tn(story.counts.feeds, '{n} feed logged', '{n} feeds logged')}
         </Text>
       </Card>
       {story.milestones.length > 0 && (
         <Card>
-          <Text variant="label">Milestones</Text>
+          <Text variant="label">{t('Milestones')}</Text>
           {story.milestones.map((m) => (
             <Text key={m.title + m.occurred_on}>
               ✨ {m.title} <Text color="textSecondary">· {formatDate(`${m.occurred_on}T12:00:00`)}</Text>
@@ -146,19 +147,19 @@ export default function YearScreen() {
         const m = mo.highlight ? byId.get(mo.highlight.id) : undefined;
         return (
           <Card key={mo.index}>
-            <Text variant="label">Month {mo.index}</Text>
+            <Text variant="label">{t('Month {n}', { n: mo.index })}</Text>
             {m && (m.photo_path || m.display_asset_id) && (
               <MemoryImage localUri={m.photo_path} assetId={m.display_asset_id} style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: Radius.md }} />
             )}
             {m?.raw_text ? <Text>{m.raw_text}</Text> : null}
             <Text variant="caption" color="textSecondary">
-              {m ? formatDate(m.occurred_at) : 'No moments saved this month.'}
+              {m ? formatDate(m.occurred_at) : t('No moments saved this month.')}
             </Text>
           </Card>
         );
       })}
       <View style={{ gap: Spacing.sm }}>
-        <Button label="Save as PDF" variant="accent" onPress={savePdf} disabled={busy} />
+        <Button label={t('Save as PDF')} variant="accent" onPress={savePdf} disabled={busy} />
         {message && <Text color="textSecondary">{message}</Text>}
       </View>
     </Screen>

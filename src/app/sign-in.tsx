@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { Button, Field, Screen, Text } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 
 export default function SignInScreen() {
   const [mode, setMode] = useState<'signIn' | 'signUp'>('signUp');
@@ -17,8 +18,8 @@ export default function SignInScreen() {
     const { data, error } =
       mode === 'signUp' ? await supabase.auth.signUp(creds) : await supabase.auth.signInWithPassword(creds);
     setBusy(false);
-    if (error) setMessage(error.message);
-    else if (!data.session) setMessage('Check your email to confirm your account, then sign in.');
+    if (error) setMessage(t(error.message)); // known Supabase messages are in the dictionary
+    else if (!data.session) setMessage(t('Check your email to confirm your account, then sign in.'));
     // On success the auth listener moves us on.
   }
 
@@ -27,27 +28,27 @@ export default function SignInScreen() {
   return (
     <Screen>
       <Text variant="display" style={{ marginTop: 48 }}>
-        Baby Journal
+        {t('Baby Journal')}
       </Text>
-      <Text color="textSecondary">Record in 10 seconds. Remember forever.</Text>
-      <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
+      <Text color="textSecondary">{t('Record in 10 seconds. Remember forever.')}</Text>
+      <Field label={t('Email')} value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
       <Field
-        label="Password"
+        label={t('Password')}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
         autoComplete={mode === 'signUp' ? 'new-password' : 'current-password'}
-        placeholder="At least 8 characters"
+        placeholder={t('At least 8 characters')}
       />
       {message && (
         <Text color="textSecondary" accessibilityLiveRegion="polite">
           {message}
         </Text>
       )}
-      <Button label={mode === 'signUp' ? 'Create account' : 'Sign in'} onPress={submit} disabled={!valid || busy} />
+      <Button label={mode === 'signUp' ? t('Create account') : t('Sign in')} onPress={submit} disabled={!valid || busy} />
       <Button
         variant="ghost"
-        label={mode === 'signUp' ? 'I already have an account' : 'Create a new account'}
+        label={mode === 'signUp' ? t('I already have an account') : t('Create a new account')}
         onPress={() => setMode(mode === 'signUp' ? 'signIn' : 'signUp')}
       />
     </Screen>

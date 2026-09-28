@@ -7,6 +7,7 @@ import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { Text } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 
 const cache = new Map<string, { url: string; expires: number }>();
 // Resolves to a URL, null when the server answered without one (deleted / no access),
@@ -64,7 +65,7 @@ export function MemoryImage({ localUri, assetId, style, label }: Props) {
       <View style={[{ backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center', gap: 4 }, style as StyleProp<ViewStyle>]}>
         <Ionicons name="image-outline" size={28} color={theme.textSecondary} />
         <Text variant="caption" color="textSecondary">
-          Photo unavailable
+          {t('Photo unavailable')}
         </Text>
       </View>
     );
@@ -78,7 +79,7 @@ export function MemoryImage({ localUri, assetId, style, label }: Props) {
       style={[{ backgroundColor: theme.surface }, style]}
       contentFit="cover"
       transition={150}
-      accessibilityLabel={label ?? 'Memory photo'}
+      accessibilityLabel={label ?? t('Memory photo')}
     />
   );
 }

@@ -1,6 +1,7 @@
 // Opt-in daily reminder (§62). Local notification, no server, no tracking. Never guilt-based.
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { t } from '@/lib/i18n';
 
 export type Reminder = { enabled: boolean; hour: number; minute: number };
 
@@ -26,12 +27,12 @@ export async function setReminder(r: Reminder): Promise<boolean> {
     }
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('reminders', {
-        name: 'Gentle reminders',
+        name: t('Gentle reminders'),
         importance: Notifications.AndroidImportance.DEFAULT,
       });
     }
     await Notifications.scheduleNotificationAsync({
-      content: { title: 'A little moment from today?', body: 'A photo or a few words is plenty. No pressure.' },
+      content: { title: t('A little moment from today?'), body: t('A photo or a few words is plenty. No pressure.') },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: r.hour, minute: r.minute, channelId: 'reminders' },
     });
   }

@@ -7,15 +7,16 @@ import { useTheme } from '@/hooks/use-theme';
 import { AppProvider, useApp } from '@/state/app';
 import { reportError } from '@/lib/monitoring';
 import type { ErrorBoundaryProps } from 'expo-router';
+import { t } from '@/lib/i18n';
 
 // Rendering crashes land here instead of a blank screen; memories on the device are untouched.
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   reportError(error, 'render');
   return (
     <Screen>
-      <Text variant="title">Something went wrong</Text>
-      <Text color="textSecondary">Your memories on this device are safe. Try again, or restart the app.</Text>
-      <Button label="Try again" onPress={retry} />
+      <Text variant="title">{t('Something went wrong')}</Text>
+      <Text color="textSecondary">{t('Your memories on this device are safe. Try again, or restart the app.')}</Text>
+      <Button label={t('Try again')} onPress={retry} />
     </Screen>
   );
 }
@@ -27,9 +28,9 @@ function RootStack() {
   if (status === 'error') {
     return (
       <Screen>
-        <Text variant="title">Can&apos;t reach Baby Journal</Text>
-        <Text color="textSecondary">Check your connection. Your memories on this device are safe.</Text>
-        <Button label="Try again" onPress={refresh} />
+        <Text variant="title">{t("Can't reach Baby Journal")}</Text>
+        <Text color="textSecondary">{t('Check your connection. Your memories on this device are safe.')}</Text>
+        <Button label={t('Try again')} onPress={refresh} />
       </Screen>
     );
   }
@@ -45,10 +46,10 @@ function RootStack() {
       </Stack.Protected>
       <Stack.Protected guard={status === 'ready'}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="memory/[id]" options={{ headerShown: true, title: '', headerBackTitle: 'Back' }} />
+        <Stack.Screen name="memory/[id]" options={{ headerShown: true, title: '', headerBackTitle: t('Back') }} />
         <Stack.Screen name="month/[key]" options={{ animation: 'fade' }} />
-        <Stack.Screen name="year/[n]" options={{ headerShown: true, title: '', headerBackTitle: 'Back' }} />
-        <Stack.Screen name="plans" options={{ headerShown: true, title: '', headerBackTitle: 'Back' }} />
+        <Stack.Screen name="year/[n]" options={{ headerShown: true, title: '', headerBackTitle: t('Back') }} />
+        <Stack.Screen name="plans" options={{ headerShown: true, title: '', headerBackTitle: t('Back') }} />
       </Stack.Protected>
     </Stack>
   );

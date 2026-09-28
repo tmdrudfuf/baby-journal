@@ -10,18 +10,17 @@ import { failedCount } from '@/lib/local-db';
 import { getReminder, setReminder, type Reminder } from '@/lib/reminders';
 import { supabase } from '@/lib/supabase';
 import { atLeast, useApp, useBaby, type Role } from '@/state/app';
+import { t, tn } from '@/lib/i18n';
 
 type Member = { user_id: string; role: Role; profiles: { display_name: string | null } | null };
 
-const ROLE_LABEL: Record<Role, string> = {
-  owner: 'Owner',
-  caregiver: 'Parent / caregiver',
-  contributor: 'Contributor',
-  viewer: 'Viewer',
-};
+const roleLabel = (r: Role) =>
+  ({ owner: t('Owner'), caregiver: t('Parent / caregiver'), contributor: t('Contributor'), viewer: t('Viewer') })[r];
+const inviteLabel = (r: Role) =>
+  ({ owner: '', caregiver: t('Invite a parent / caregiver'), contributor: t('Invite a contributor'), viewer: t('Invite a viewer') })[r];
 const INVITABLE: Role[] = ['caregiver', 'contributor', 'viewer'];
 const PRIVACY_URL = 'https://tmdrudfuf.github.io/baby-journal/privacy.html';
-const PLAN_LABEL: Record<string, string> = { free: 'Free', plus: 'Plus', family: 'Family' };
+const planLabel = (id: string) => ({ free: t('Free'), plus: t('Plus'), family: t('Family') })[id] ?? id;
 const formatBytes = (b: number) =>
   b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(b % 1024 ** 3 ? 1 : 0)} GB` : `${Math.max(0.1, b / 1024 ** 2).toFixed(1)} MB`;
 
@@ -42,7 +41,7 @@ export default function FamilyScreen() {
   async function updateReminder(r: Reminder) {
     const ok = await setReminder(r);
     setReminderState(ok ? r : { ...r, enabled: false });
-    if (!ok) setMessage('Notifications are off for Baby Journal. You can allow them in your phone settings.');
+    if (!ok) setMessage(t('Notifications are off for Baby Journal. You can allow them in your phone settings.'));
   }
   const reminderTime = new Date(2000, 0, 1, reminder.hour, reminder.minute).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
@@ -54,7 +53,7 @@ export default function FamilyScreen() {
       .is('revoked_at', null)
       .order('created_at')
       .then(({ data, error }) => {
-        if (error) return setMessage('Could not load your family. Check your connection.');
+        if (error) return setMessage(t('Could not load your family. Check your connection.'));
         setMembers(data as Member[]);
         setMyName((data as Member[]).find((m) => m.user_id === me)?.profiles?.display_name ?? '');
       });
@@ -68,48 +67,46 @@ export default function FamilyScreen() {
   async function toggleAi() {
     const next = !aiEnabled;
     const { error } = await supabase.from('families').update({ ai_enabled: next }).eq('id', baby.family_id);
-    if (error) return setMessage('Could not change AI suggestions. Check your connection.');
+    if (error) return setMessage(t('Could not change AI suggestions. Check your connection.'));
     setAiEnabled(next);
   }
 
   async function saveName() {
     const { error } = await supabase.from('profiles').update({ display_name: myName.trim() || null }).eq('id', me ?? '');
-    setMessage(error ? 'Could not save your name.' : 'Saved.');
+    setMessage(error ? t('Could not save your name.') : t('Saved.'));
     load();
   }
 
   async function invite(role: Role) {
     setMessage(null);
     const { data: code, error } = await supabase.rpc('create_invitation', { fid: baby.family_id, invite_role: role });
-    if (error) return setMessage('Could not create an invite. Check your connection.');
+    if (error) return setMessage(t('Could not create an invite. Check your connection.'));
     track('family_invited');
     await Share.share({
-      message:
-        `Join ${baby.name}'s private journal on Baby Journal as ${ROLE_LABEL[role].toLowerCase()}.\n\n` +
-        `1. Install Baby Journal and create an account.\n` +
-        `2. Open this link on your phone: babyjournal://join?code=${code}\n` +
-        `   or choose "Join with an invite code" and paste:\n\n${code}\n\n` +
-        `The code works once and expires in 7 days.`,
+      message: t(
+        "Join {name}'s private journal on Baby Journal as {role}.\n\n1. Install Baby Journal and create an account.\n2. Open this link on your phone: babyjournal://join?code={code}\n   or choose \"Join with an invite code\" and paste:\n\n{code}\n\nThe code works once and expires in 7 days.",
+        { name: baby.name, role: roleLabel(role), code },
+      ),
     });
   }
 
   // Android alerts show at most three buttons, so role changes are a second step.
   function manage(m: Member) {
-    const name = m.profiles?.display_name || 'this member';
-    Alert.alert(name, ROLE_LABEL[m.role], [
-      { text: 'Change role', onPress: () => pickRole(m, name) },
-      { text: 'Remove from family', style: 'destructive', onPress: () => update(m, { revoked_at: new Date().toISOString() }) },
-      { text: 'Cancel', style: 'cancel' },
+    const name = m.profiles?.display_name || t('this member');
+    Alert.alert(name, roleLabel(m.role), [
+      { text: t('Change role'), onPress: () => pickRole(m, name) },
+      { text: t('Remove from family'), style: 'destructive', onPress: () => update(m, { revoked_at: new Date().toISOString() }) },
+      { text: t('Cancel'), style: 'cancel' },
     ]);
   }
 
   function pickRole(m: Member, name: string) {
     Alert.alert(
-      `Change ${name}'s role`,
+      t("Change {name}'s role", { name }),
       undefined,
       (['owner', ...INVITABLE] as Role[])
         .filter((r) => r !== m.role)
-        .map((r) => ({ text: ROLE_LABEL[r], onPress: () => update(m, { role: r }) })),
+        .map((r) => ({ text: roleLabel(r), onPress: () => update(m, { role: r }) })),
       { cancelable: true },
     );
   }
@@ -117,7 +114,7 @@ export default function FamilyScreen() {
   async function update(m: Member, patch: { role?: Role; revoked_at?: string }) {
     const { error } = await supabase.from('family_members').update(patch).eq('family_id', baby.family_id).eq('user_id', m.user_id);
     // The database refuses to leave a family without an owner.
-    setMessage(error ? (error.code === '23514' ? 'A family needs at least one owner.' : 'Could not update this member.') : null);
+    setMessage(error ? (error.code === '23514' ? t('A family needs at least one owner.') : t('Could not update this member.')) : null);
     load();
     if (m.user_id === me) refresh();
   }
@@ -126,11 +123,15 @@ export default function FamilyScreen() {
     const failed = failedCount();
     if (!failed) return doSignOut();
     Alert.alert(
-      'Some items could not upload',
-      `${failed} ${failed === 1 ? 'item' : 'items'} could not be uploaded and will be removed from this phone when you sign out.`,
+      t('Some items could not upload'),
+      tn(
+        failed,
+        '{n} item could not be uploaded and will be removed from this phone when you sign out.',
+        '{n} items could not be uploaded and will be removed from this phone when you sign out.',
+      ),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign out', style: 'destructive', onPress: doSignOut },
+        { text: t('Cancel'), style: 'cancel' },
+        { text: t('Sign out'), style: 'destructive', onPress: doSignOut },
       ],
     );
   }
@@ -140,7 +141,7 @@ export default function FamilyScreen() {
     try {
       await signOut();
     } catch (e) {
-      Alert.alert('Not yet', e instanceof Error ? e.message : String(e));
+      Alert.alert(t('Not yet'), e instanceof Error ? e.message : String(e));
       setBusy(false);
     }
   }
@@ -149,34 +150,37 @@ export default function FamilyScreen() {
   // Larger journals come in parts: unzip all parts into one folder.
   async function exportData(part = 1) {
     setBusy(true);
-    setMessage(`Preparing download${part > 1 ? ` part ${part}` : ''}… this can take a minute.`);
+    setMessage(part > 1 ? t('Preparing download part {part}… this can take a minute.', { part }) : t('Preparing download… this can take a minute.'));
     const { data, error } = await supabase.functions.invoke('media-sign', {
       body: { action: 'export', part, tz: Intl.DateTimeFormat().resolvedOptions().timeZone },
     });
     setBusy(false);
-    if (error || !data?.url) return setMessage('Could not prepare your data. Check your connection and try again.');
+    if (error || !data?.url) return setMessage(t('Could not prepare your data. Check your connection and try again.'));
     setExportParts(data.parts);
     setMessage(
       data.parts > 1
-        ? `Part ${data.part} of ${data.parts} is ready. Download every part and unzip them into one folder.`
-        : 'Your download is ready. The link works for 24 hours.',
+        ? t('Part {part} of {parts} is ready. Download every part and unzip them into one folder.', { part: data.part, parts: data.parts })
+        : t('Your download is ready. The link works for 24 hours.'),
     );
     Linking.openURL(data.url);
   }
 
   function confirmDeleteFamily() {
     Alert.alert(
-      `Delete ${baby.family_name}?`,
-      `All of ${baby.name}'s memories, photos, logs and comments will be permanently deleted for everyone in the family. A Google Play subscription is not canceled by this; cancel it in Google Play.`,
+      t('Delete {family}?', { family: baby.family_name }),
+      t(
+        "All of {name}'s memories, photos, logs and comments will be permanently deleted for everyone in the family. A Google Play subscription is not canceled by this; cancel it in Google Play.",
+        { name: baby.name },
+      ),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('Cancel'), style: 'cancel' },
         {
-          text: 'Continue',
+          text: t('Continue'),
           style: 'destructive',
           onPress: () =>
-            Alert.alert('This cannot be undone', 'Delete the family and everything in it now?', [
-              { text: 'Keep it', style: 'cancel' },
-              { text: 'Delete forever', style: 'destructive', onPress: deleteFamily },
+            Alert.alert(t('This cannot be undone'), t('Delete the family and everything in it now?'), [
+              { text: t('Keep it'), style: 'cancel' },
+              { text: t('Delete forever'), style: 'destructive', onPress: deleteFamily },
             ]),
         },
       ],
@@ -188,7 +192,7 @@ export default function FamilyScreen() {
     const { error } = await supabase.from('families').delete().eq('id', baby.family_id);
     if (error) {
       setBusy(false);
-      return setMessage('Could not delete the family. Check your connection and try again.');
+      return setMessage(t('Could not delete the family. Check your connection and try again.'));
     }
     await supabase.functions.invoke('media-sign', { body: { action: 'purge' } }).catch(() => undefined);
     refresh(); // no family any more: back to onboarding, local copies are wiped
@@ -196,18 +200,18 @@ export default function FamilyScreen() {
 
   function confirmDeleteAccount() {
     Alert.alert(
-      'Delete your account?',
-      'Your login is removed and you leave your family. Everyone else keeps the journal: if you are the only owner, ownership passes to the next parent or caregiver. A family with nobody else in it is deleted with all its memories and photos. Deleting your account does not cancel a Google Play subscription; cancel it in Google Play first.',
+      t('Delete your account?'),
+      t('Your login is removed and you leave your family. Everyone else keeps the journal: if you are the only owner, ownership passes to the next parent or caregiver. A family with nobody else in it is deleted with all its memories and photos. Deleting your account does not cancel a Google Play subscription; cancel it in Google Play first.'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('Cancel'), style: 'cancel' },
         {
-          text: 'Continue',
+          text: t('Continue'),
           style: 'destructive',
           onPress: () =>
-            Alert.alert('This cannot be undone', 'Delete your account permanently?', [
-              { text: 'Keep my account', style: 'cancel' },
+            Alert.alert(t('This cannot be undone'), t('Delete your account permanently?'), [
+              { text: t('Keep my account'), style: 'cancel' },
               {
-                text: 'Delete forever',
+                text: t('Delete forever'),
                 style: 'destructive',
                 onPress: () => {
                   setBusy(true);
@@ -227,62 +231,64 @@ export default function FamilyScreen() {
 
   return (
     <Screen>
-      <Text variant="display">Family</Text>
+      <Text variant="display">{t('Family')}</Text>
       <Card>
         <Text variant="label">{baby.family_name}</Text>
-        <Text color="textSecondary">Private by default. Only people you invite can see {baby.name}&apos;s journal.</Text>
+        <Text color="textSecondary">{t("Private by default. Only people you invite can see {name}'s journal.", { name: baby.name })}</Text>
         {usage && (
           <Text variant="caption" color="textSecondary">
-            {PLAN_LABEL[usage.plan_id] ?? usage.plan_id} plan · {formatBytes(usage.used_bytes)} of {formatBytes(usage.storage_bytes)} used
+            {t('{plan} plan · {used} of {total} used', { plan: planLabel(usage.plan_id), used: formatBytes(usage.used_bytes), total: formatBytes(usage.storage_bytes) })}
           </Text>
         )}
-        <Button variant="ghost" label="Plans and storage" onPress={() => router.push('/plans')} />
+        <Button variant="ghost" label={t('Plans and storage')} onPress={() => router.push('/plans')} />
       </Card>
 
       <Card>
-        <Text variant="label">Members</Text>
-        {members === null && <Text color="textSecondary">Loading…</Text>}
+        <Text variant="label">{t('Members')}</Text>
+        {members === null && <Text color="textSecondary">{t('Loading…')}</Text>}
         {members?.map((m) => (
           <View key={m.user_id} style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, minHeight: 48 }}>
             <View style={{ flex: 1 }}>
               <Text>
-                {m.profiles?.display_name || 'No name yet'}
-                {m.user_id === me ? ' (you)' : ''}
+                {m.profiles?.display_name || t('No name yet')}
+                {m.user_id === me ? t(' (you)') : ''}
               </Text>
               <Text variant="caption" color="textSecondary">
-                {ROLE_LABEL[m.role]}
+                {roleLabel(m.role)}
               </Text>
             </View>
-            {isOwner && <Button variant="ghost" label="Manage" onPress={() => manage(m)} />}
+            {isOwner && <Button variant="ghost" label={t('Manage')} onPress={() => manage(m)} />}
           </View>
         ))}
       </Card>
 
       {atLeast(baby.role, 'caregiver') && (
         <Card>
-          <Text variant="label">Invite someone</Text>
-          <Text color="textSecondary">Parents and caregivers can add memories. Viewers can see, react and comment.</Text>
+          <Text variant="label">{t('Invite someone')}</Text>
+          <Text color="textSecondary">{t('Parents and caregivers can add memories. Viewers can see, react and comment.')}</Text>
           {INVITABLE.map((r) => (
-            <Button key={r} variant="ghost" label={`Invite a ${ROLE_LABEL[r].toLowerCase()}`} onPress={() => invite(r)} />
+            <Button key={r} variant="ghost" label={inviteLabel(r)} onPress={() => invite(r)} />
           ))}
         </Card>
       )}
 
       <Card>
-        <Field label="Your name in this family" value={myName} onChangeText={setMyName} placeholder="e.g. Dad, Grandma" />
-        <Button variant="ghost" label="Save name" onPress={saveName} />
+        <Field label={t('Your name in this family')} value={myName} onChangeText={setMyName} placeholder={t('e.g. Dad, Grandma')} />
+        <Button variant="ghost" label={t('Save name')} onPress={saveName} />
       </Card>
       <Card>
-        <Text variant="label">Gentle reminder</Text>
+        <Text variant="label">{t('Gentle reminder')}</Text>
         <Text color="textSecondary">
-          {reminder.enabled ? `Every day at ${reminderTime}, a quiet nudge to keep a moment.` : 'Off. Turn on a quiet daily nudge if it helps.'}
+          {reminder.enabled
+            ? t('Every day at {time}, a quiet nudge to keep a moment.', { time: reminderTime })
+            : t('Off. Turn on a quiet daily nudge if it helps.')}
         </Text>
         <Button
           variant="ghost"
-          label={reminder.enabled ? 'Turn off' : `Remind me at ${reminderTime}`}
+          label={reminder.enabled ? t('Turn off') : t('Remind me at {time}', { time: reminderTime })}
           onPress={() => updateReminder({ ...reminder, enabled: !reminder.enabled })}
         />
-        <Button variant="ghost" label="Change time" onPress={() => setPickingTime(true)} />
+        <Button variant="ghost" label={t('Change time')} onPress={() => setPickingTime(true)} />
         {pickingTime && (
           <DateTimePicker
             value={new Date(2000, 0, 1, reminder.hour, reminder.minute)}
@@ -299,34 +305,35 @@ export default function FamilyScreen() {
 
       <Card>
         <Text variant="caption" color="textSecondary">
-          Signed in as {session?.user.email}
+          {t('Signed in as {email}', { email: session?.user.email ?? '' })}
         </Text>
-        <Button variant="ghost" label="Sign out" onPress={onSignOut} disabled={busy} />
+        <Button variant="ghost" label={t('Sign out')} onPress={onSignOut} disabled={busy} />
       </Card>
 
       <Card>
-        <Text variant="label">Privacy</Text>
-        <Text color="textSecondary">Your family&apos;s memories are private. They are never sold or used for ads.</Text>
-        <Button variant="ghost" label="Privacy policy" onPress={() => Linking.openURL(PRIVACY_URL)} />
+        <Text variant="label">{t('Privacy')}</Text>
+        <Text color="textSecondary">{t("Your family's memories are private. They are never sold or used for ads.")}</Text>
+        <Button variant="ghost" label={t('Privacy policy')} onPress={() => Linking.openURL(PRIVACY_URL)} />
         {aiEnabled !== null && (
           <>
             <Text color="textSecondary">
-              AI suggestions {aiEnabled ? 'are on' : 'are off'}. When on, the words of a new memory (never photos) are sent to our AI provider to suggest a
-              journal entry and spot milestones; a Daily Story sends that day&apos;s notes, and asking your journal a question sends the few notes that
-              match it. Your original words are always kept as written. Search itself works without sending anything outside our servers.
+              {aiEnabled ? t('AI suggestions are on.') : t('AI suggestions are off.')}{' '}
+              {t(
+                "When on, the words of a new memory (never photos) are sent to our AI provider to suggest a journal entry and spot milestones; a Daily Story sends that day's notes, and asking your journal a question sends the few notes that match it. Your original words are always kept as written. Search itself works without sending anything outside our servers.",
+              )}
             </Text>
             {isOwner && (
-              <Button variant="ghost" label={aiEnabled ? 'Turn off AI suggestions' : 'Turn on AI suggestions'} onPress={toggleAi} disabled={busy} />
+              <Button variant="ghost" label={aiEnabled ? t('Turn off AI suggestions') : t('Turn on AI suggestions')} onPress={toggleAi} disabled={busy} />
             )}
           </>
         )}
-        <Button variant="ghost" label="Download my data" onPress={() => exportData(1)} disabled={busy} />
+        <Button variant="ghost" label={t('Download my data')} onPress={() => exportData(1)} disabled={busy} />
         {exportParts > 1 &&
           Array.from({ length: exportParts - 1 }, (_, i) => i + 2).map((p) => (
-            <Button key={p} variant="ghost" label={`Download part ${p} of ${exportParts}`} onPress={() => exportData(p)} disabled={busy} />
+            <Button key={p} variant="ghost" label={t('Download part {part} of {parts}', { part: p, parts: exportParts })} onPress={() => exportData(p)} disabled={busy} />
           ))}
-        {isOwner && <Button variant="ghost" label="Delete this family" onPress={confirmDeleteFamily} disabled={busy} />}
-        <Button variant="ghost" label="Delete my account" onPress={confirmDeleteAccount} disabled={busy} />
+        {isOwner && <Button variant="ghost" label={t('Delete this family')} onPress={confirmDeleteFamily} disabled={busy} />}
+        <Button variant="ghost" label={t('Delete my account')} onPress={confirmDeleteAccount} disabled={busy} />
       </Card>
     </Screen>
   );

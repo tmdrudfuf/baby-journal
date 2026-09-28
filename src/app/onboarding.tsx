@@ -7,6 +7,7 @@ import { formatDate, localDayKey } from '@/lib/dates';
 import { track } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 import { PENDING_INVITE_KEY, useApp } from '@/state/app';
+import { t } from '@/lib/i18n';
 
 const pendingInvite = () => {
   try {
@@ -33,7 +34,7 @@ export default function OnboardingScreen() {
       await fn();
       refresh(); // app state re-reads family, baby and our role
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
+      setError(e instanceof Error ? t(e.message) : t('Something went wrong. Try again.'));
       setBusy(false);
     }
   }
@@ -45,7 +46,7 @@ export default function OnboardingScreen() {
       const { data: existing } = await supabase.from('families').select('id').limit(1);
       let familyId = existing?.[0]?.id;
       if (!familyId) {
-        const { data, error } = await supabase.rpc('create_family', { family_name: `${babyName}'s family` });
+        const { data, error } = await supabase.rpc('create_family', { family_name: t("{name}'s family", { name: babyName }) });
         if (error) throw error;
         familyId = data;
       }
@@ -59,8 +60,8 @@ export default function OnboardingScreen() {
   const join = () =>
     run(async () => {
       const { error } = await supabase.rpc('accept_invitation', { token: code.trim() });
-      if (error?.message.includes('full')) throw new Error('This family has reached its member limit. Ask the owner to remove someone or upgrade.');
-      if (error) throw new Error('That invite code is invalid or has expired. Ask for a new one.');
+      if (error?.message.includes('full')) throw new Error(t('This family has reached its member limit. Ask the owner to remove someone or upgrade.'));
+      if (error) throw new Error(t('That invite code is invalid or has expired. Ask for a new one.'));
       localStorage.removeItem(PENDING_INVITE_KEY);
       track('family_joined');
     });
@@ -68,13 +69,13 @@ export default function OnboardingScreen() {
   return (
     <Screen>
       <Text variant="display" style={{ marginTop: 48 }}>
-        Welcome
+        {t('Welcome')}
       </Text>
       {mode === 'create' ? (
         <>
-          <Text color="textSecondary">Tell us about your little one. You can change this later.</Text>
-          <Field label="Baby's name" value={name} onChangeText={setName} placeholder="e.g. Noah" autoCapitalize="words" />
-          <Text variant="label">Birthday</Text>
+          <Text color="textSecondary">{t('Tell us about your little one. You can change this later.')}</Text>
+          <Field label={t("Baby's name")} value={name} onChangeText={setName} placeholder={t('e.g. Noah')} autoCapitalize="words" />
+          <Text variant="label">{t('Birthday')}</Text>
           <Button variant="ghost" label={formatDate(birth.toISOString())} onPress={() => setPicking(true)} />
           {(picking || Platform.OS === 'ios') && (
             <DateTimePicker
@@ -89,22 +90,22 @@ export default function OnboardingScreen() {
             />
           )}
           {error && <Text color="textSecondary">{error}</Text>}
-          <Button label="Start our journal" onPress={create} disabled={!name.trim() || busy} />
+          <Button label={t('Start our journal')} onPress={create} disabled={!name.trim() || busy} />
           <Card>
-            <Text color="textSecondary">Someone already started a journal for your baby?</Text>
-            <Button variant="ghost" label="Join with an invite code" onPress={() => setMode('join')} />
+            <Text color="textSecondary">{t('Someone already started a journal for your baby?')}</Text>
+            <Button variant="ghost" label={t('Join with an invite code')} onPress={() => setMode('join')} />
           </Card>
         </>
       ) : (
         <>
-          <Text color="textSecondary">Paste the invite code a family member shared with you.</Text>
-          <Field label="Invite code" value={code} onChangeText={setCode} autoCapitalize="none" autoCorrect={false} />
+          <Text color="textSecondary">{t('Paste the invite code a family member shared with you.')}</Text>
+          <Field label={t('Invite code')} value={code} onChangeText={setCode} autoCapitalize="none" autoCorrect={false} />
           {error && <Text color="textSecondary">{error}</Text>}
-          <Button label="Join family" onPress={join} disabled={code.trim().length < 16 || busy} />
-          <Button variant="ghost" label="Start a new journal instead" onPress={() => setMode('create')} />
+          <Button label={t('Join family')} onPress={join} disabled={code.trim().length < 16 || busy} />
+          <Button variant="ghost" label={t('Start a new journal instead')} onPress={() => setMode('create')} />
         </>
       )}
-      <Button variant="ghost" label="Sign out" onPress={() => signOut().catch(() => undefined)} />
+      <Button variant="ghost" label={t('Sign out')} onPress={() => signOut().catch(() => undefined)} />
     </Screen>
   );
 }

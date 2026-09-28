@@ -11,6 +11,7 @@ import { formatDate, formatTime } from '@/lib/dates';
 import { getMemory, markDeleting, updateText, useLocal } from '@/lib/local-db';
 import { confirmMilestone, discardStory, dismissMilestone, editStory, regenerateStory, syncNow } from '@/lib/sync';
 import { atLeast, useApp } from '@/state/app';
+import { t } from '@/lib/i18n';
 
 export default function MemoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,7 +24,7 @@ export default function MemoryScreen() {
   if (!memory || memory.status === 'deleting') {
     return (
       <Screen>
-        <Text color="textSecondary">This memory is no longer here.</Text>
+        <Text color="textSecondary">{t('This memory is no longer here.')}</Text>
       </Screen>
     );
   }
@@ -45,13 +46,13 @@ export default function MemoryScreen() {
     try {
       await fn();
     } catch {
-      setAiError('Could not save that choice. Check your connection and try again.');
+      setAiError(t('Could not save that choice. Check your connection and try again.'));
     }
   }
 
   function confirmDelete() {
     Alert.alert('Delete this memory?', 'It will be removed for everyone in your family. This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('Cancel'), style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
@@ -74,66 +75,66 @@ export default function MemoryScreen() {
       </Text>
       {memory.author_name && (
         <Text variant="caption" color="textSecondary">
-          Recorded by {memory.author_name}
+          {t('Recorded by {name}', { name: memory.author_name })}
         </Text>
       )}
       <SyncBadge memory={memory} />
       {draft === null ? (
         <>
-          {memory.raw_text ? <Text>{memory.raw_text}</Text> : <Text color="textSecondary">No words yet.</Text>}
-          {canEdit && <Button variant="ghost" label={memory.raw_text ? 'Edit text' : 'Add words'} onPress={() => setDraft(memory.raw_text ?? '')} />}
+          {memory.raw_text ? <Text>{memory.raw_text}</Text> : <Text color="textSecondary">{t('No words yet.')}</Text>}
+          {canEdit && <Button variant="ghost" label={memory.raw_text ? t('Edit text') : t('Add words')} onPress={() => setDraft(memory.raw_text ?? '')} />}
         </>
       ) : (
         <>
-          <Field label="What happened?" value={draft} onChangeText={setDraft} multiline autoFocus style={{ minHeight: 120, textAlignVertical: 'top' }} />
-          <Button label="Save" onPress={saveText} />
-          <Button variant="ghost" label="Cancel" onPress={() => setDraft(null)} />
+          <Field label={t('What happened?')} value={draft} onChangeText={setDraft} multiline autoFocus style={{ minHeight: 120, textAlignVertical: 'top' }} />
+          <Button label={t('Save')} onPress={saveText} />
+          <Button variant="ghost" label={t('Cancel')} onPress={() => setDraft(null)} />
         </>
       )}
       {canEdit && memory.milestone_candidate === 1 && memory.milestone_title && (
         <Card accessibilityRole="summary">
           <Text variant="caption" color="textSecondary">
-            Possible milestone ✨
+            {t('Possible milestone ✨')}
           </Text>
           <Text variant="title">{memory.milestone_title}</Text>
           <Text color="textSecondary">{formatDate(memory.occurred_at)}</Text>
-          <Button label="Save milestone" variant="accent" onPress={() => act(() => confirmMilestone(memory, memory.milestone_title ?? ''))} />
-          <Button label="Not a milestone" variant="ghost" onPress={() => act(() => dismissMilestone(memory))} />
+          <Button label={t('Save milestone')} variant="accent" onPress={() => act(() => confirmMilestone(memory, memory.milestone_title ?? ''))} />
+          <Button label={t('Not a milestone')} variant="ghost" onPress={() => act(() => dismissMilestone(memory))} />
         </Card>
       )}
       {memory.story_text && (
         <Card>
           <Text variant="caption" color="textSecondary">
-            Suggested for your journal
+            {t('Suggested for your journal')}
           </Text>
           {storyDraft === null ? (
             <>
               <Text>{memory.story_text}</Text>
               {canEdit && (
                 <>
-                  <Button label="Edit suggestion" variant="ghost" onPress={() => setStoryDraft(memory.story_text ?? '')} />
-                  <Button label="Try another suggestion" variant="ghost" onPress={() => act(async () => {
-                    if (!(await regenerateStory(memory))) setAiError('AI suggestions are unavailable right now. Your memory is saved.');
+                  <Button label={t('Edit suggestion')} variant="ghost" onPress={() => setStoryDraft(memory.story_text ?? '')} />
+                  <Button label={t('Try another suggestion')} variant="ghost" onPress={() => act(async () => {
+                    if (!(await regenerateStory(memory))) setAiError(t('AI suggestions are unavailable right now. Your memory is saved.'));
                   })} />
-                  <Button label="Discard suggestion" variant="ghost" onPress={() => act(() => discardStory(memory))} />
+                  <Button label={t('Discard suggestion')} variant="ghost" onPress={() => act(() => discardStory(memory))} />
                 </>
               )}
             </>
           ) : (
             <>
-              <Field label="Your journal words" value={storyDraft} onChangeText={setStoryDraft} multiline autoFocus style={{ minHeight: 120, textAlignVertical: 'top' }} />
-              <Button label="Save" onPress={() => act(async () => {
+              <Field label={t('Your journal words')} value={storyDraft} onChangeText={setStoryDraft} multiline autoFocus style={{ minHeight: 120, textAlignVertical: 'top' }} />
+              <Button label={t('Save')} onPress={() => act(async () => {
                 await editStory(memory, storyDraft);
                 setStoryDraft(null);
               })} />
-              <Button variant="ghost" label="Cancel" onPress={() => setStoryDraft(null)} />
+              <Button variant="ghost" label={t('Cancel')} onPress={() => setStoryDraft(null)} />
             </>
           )}
         </Card>
       )}
       {aiError && <Text color="textSecondary">{aiError}</Text>}
       {memory.status === 'synced' && session && <MemorySocial memory={memory} userId={session.user.id} />}
-      {canEdit && <Button variant="ghost" label="Delete memory" onPress={confirmDelete} />}
+      {canEdit && <Button variant="ghost" label={t('Delete memory')} onPress={confirmDelete} />}
     </Screen>
   );
 }

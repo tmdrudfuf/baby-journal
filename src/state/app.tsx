@@ -10,6 +10,7 @@ import { getReminder, setReminder } from '@/lib/reminders';
 import { track } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 import { syncNow } from '@/lib/sync';
+import { t } from '@/lib/i18n';
 
 export type Role = 'viewer' | 'contributor' | 'caregiver' | 'owner';
 export type Baby = { id: string; family_id: string; name: string; birth_date: string | null; family_name: string; role: Role };
@@ -136,7 +137,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (local.pendingCount() > 0) {
-      throw new Error('Some memories have not uploaded yet. Connect to the internet and try again.');
+      throw new Error(t('Some memories have not uploaded yet. Connect to the internet and try again.'));
     }
     await supabase.auth.signOut();
     // Private by default: nothing from this account stays on the device.
@@ -149,7 +150,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Permanent (§37): sole-owned families, their memories and photos are deleted server-side.
   const deleteAccount = useCallback(async () => {
     const { error } = await supabase.functions.invoke('media-sign', { body: { action: 'delete_account' } });
-    if (error) throw new Error('Could not delete your account. Check your connection and try again.');
+    if (error) throw new Error(t('Could not delete your account. Check your connection and try again.'));
     local.wipe();
     deleteAllLocalFiles();
     setReminder({ ...getReminder(), enabled: false }).catch(() => undefined);

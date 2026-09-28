@@ -1,3 +1,5 @@
+import { t, tn } from '@/lib/i18n';
+
 // All "day" logic uses the device's local calendar, never UTC (a 3 AM memory belongs to that local day).
 
 export function localDayKey(date: Date): string {
@@ -22,10 +24,10 @@ export function dayNumber(birthDate: string, now: Date): number {
 
 export function greeting(now: Date): string {
   const h = now.getHours();
-  if (h < 5) return 'Hello';
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
+  if (h < 5) return t('Hello');
+  if (h < 12) return t('Good morning');
+  if (h < 18) return t('Good afternoon');
+  return t('Good evening');
 }
 
 export function formatTime(iso: string): string {
@@ -44,8 +46,8 @@ export function onThisDayLabel(iso: string, now: Date): string | null {
   if (d.getDate() !== now.getDate()) return null;
   const months = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
   if (months <= 0) return null;
-  if (months % 12 === 0) return months === 12 ? 'One year ago today' : `${months / 12} years ago today`;
-  if (months < 12) return months === 1 ? 'One month ago today' : `${months} months ago today`;
+  if (months % 12 === 0) return tn(months / 12, 'One year ago today', '{n} years ago today');
+  if (months < 12) return tn(months, 'One month ago today', '{n} months ago today');
   return null;
 }
 
@@ -53,11 +55,11 @@ export function onThisDayLabel(iso: string, now: Date): string | null {
 export function ageLabel(birthDate: string, on: Date): string | null {
   const days = dayNumber(birthDate, on) - 1;
   if (days < 0) return null;
-  if (days < 7) return days <= 1 ? 'newborn' : `${days} days old`;
+  if (days < 7) return days <= 1 ? t('newborn') : t('{n} days old', { n: days });
   const birth = parseLocalDate(birthDate);
   let months = (on.getFullYear() - birth.getFullYear()) * 12 + (on.getMonth() - birth.getMonth());
   if (on.getDate() < birth.getDate()) months--;
-  if (months < 1) return `${Math.floor(days / 7)} ${Math.floor(days / 7) === 1 ? 'week' : 'weeks'} old`;
-  if (months < 24) return `${months} ${months === 1 ? 'month' : 'months'} old`;
-  return `${Math.floor(months / 12)} years old`;
+  if (months < 1) return tn(Math.floor(days / 7), '{n} week old', '{n} weeks old');
+  if (months < 24) return tn(months, '{n} month old', '{n} months old');
+  return t('{n} years old', { n: Math.floor(months / 12) });
 }

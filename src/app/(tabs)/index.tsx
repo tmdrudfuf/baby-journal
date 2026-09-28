@@ -10,6 +10,7 @@ import { dayNumber, formatDate, formatTime, greeting, localDayKey, onThisDayLabe
 import { listEvents, listMemories, useLocal, type LocalMemory } from '@/lib/local-db';
 import { summarizeDay, summaryLine } from '@/lib/tracker';
 import { atLeast, useBaby } from '@/state/app';
+import { t, tn } from '@/lib/i18n';
 
 const TILE = 72;
 
@@ -20,7 +21,7 @@ function MomentTile({ memory }: { memory: LocalMemory }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${memory.raw_text || 'Photo'}, ${formatTime(memory.occurred_at)}`}
+      accessibilityLabel={`${memory.raw_text || t('Photo')}, ${formatTime(memory.occurred_at)}`}
       onPress={() => router.push(`/memory/${memory.id}`)}>
       {hasPhoto ? (
         <MemoryImage localUri={memory.thumb_path} assetId={memory.thumb_asset_id} style={{ width: TILE, height: TILE, borderRadius: Radius.sm }} />
@@ -62,29 +63,29 @@ export default function HomeScreen() {
       </Text>
       <View>
         <Text variant="display">{baby.name}</Text>
-        {day && day > 0 && <Text color="textSecondary">Day {day}</Text>}
+        {day && day > 0 && <Text color="textSecondary">{t('Day {n}', { n: day })}</Text>}
       </View>
 
       {hero && (
-        <Pressable accessibilityRole="button" accessibilityLabel="Open latest photo" onPress={() => router.push(`/memory/${hero.id}`)}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('Open latest photo')} onPress={() => router.push(`/memory/${hero.id}`)}>
           <MemoryImage localUri={hero.photo_path} assetId={hero.display_asset_id} style={{ width: '100%', aspectRatio: 4 / 5, borderRadius: Radius.lg }} />
         </Pressable>
       )}
       {day && day > 0 && (
         <Text variant="title" style={{ textAlign: 'center' }}>
-          {day} {day === 1 ? 'day' : 'days'} together
+          {tn(day, '{n} day together', '{n} days together')}
         </Text>
       )}
 
       {recent.length > 0 && (
         <View style={{ gap: Spacing.sm }}>
-          <Text variant="label">Recent moments</Text>
+          <Text variant="label">{t('Recent moments')}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm }}>
             {recent.map((m) => (
               <Pressable
                 key={m.id}
                 accessibilityRole="button"
-                accessibilityLabel={`Memory from ${formatDate(m.occurred_at)}`}
+                accessibilityLabel={t('Memory from {date}', { date: formatDate(m.occurred_at) })}
                 onPress={() => router.push(`/memory/${m.id}`)}>
                 <MemoryImage localUri={m.thumb_path} assetId={m.thumb_asset_id} style={{ width: 120, height: 120, borderRadius: Radius.md }} />
               </Pressable>
@@ -112,15 +113,15 @@ export default function HomeScreen() {
         </Card>
       )}
       <Card>
-        <Text variant="label">Today</Text>
+        <Text variant="label">{t('Today')}</Text>
         {todayMemories.length === 0 && !hasLogs ? (
-          <Text color="textSecondary">No moments yet today. Your first one takes about 10 seconds.</Text>
+          <Text color="textSecondary">{t('No moments yet today. Your first one takes about 10 seconds.')}</Text>
         ) : (
           <Text variant="caption" color="textSecondary">
             {[
-              todayMemories.length > 0 && `${todayMemories.length} ${todayMemories.length === 1 ? 'moment' : 'moments'}`,
+              todayMemories.length > 0 && tn(todayMemories.length, '{n} moment', '{n} moments'),
               hasLogs && summaryLine(summary),
-              summary.sleeping && 'sleeping now',
+              summary.sleeping && t('sleeping now'),
             ]
               .filter(Boolean)
               .join(' · ')}
@@ -141,7 +142,7 @@ export default function HomeScreen() {
         notes={todayMemories.filter((m) => (m.raw_text?.trim().length ?? 0) >= 3).length}
         canEdit={atLeast(baby.role, 'contributor')}
       />
-      <Button label="Capture a moment" variant="accent" onPress={() => router.navigate('/capture')} />
+      <Button label={t('Capture a moment')} variant="accent" onPress={() => router.navigate('/capture')} />
     </Screen>
   );
 }

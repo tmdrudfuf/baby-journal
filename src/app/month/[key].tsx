@@ -10,6 +10,7 @@ import { MemoryImage } from '@/components/memory-image';
 import { Text } from '@/components/ui';
 import { Palette, Spacing, TouchTarget } from '@/constants/theme';
 import { ageLabel, formatDate } from '@/lib/dates';
+import { t, tn } from '@/lib/i18n';
 import { listMemories, listMilestones, useLocal, type LocalMemory } from '@/lib/local-db';
 import { track } from '@/lib/analytics';
 import { monthKey, monthTitle, selectHighlights } from '@/lib/monthly';
@@ -65,12 +66,12 @@ export default function MonthScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Palette.night }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: Spacing.sm }}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => router.back()} style={{ width: TouchTarget, height: TouchTarget, alignItems: 'center', justifyContent: 'center' }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('Close')} onPress={() => router.back()} style={{ width: TouchTarget, height: TouchTarget, alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name="close" size={28} color={Palette.mist} />
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={playing ? 'Pause slideshow' : 'Play slideshow'}
+          accessibilityLabel={playing ? t('Pause slideshow') : t('Play slideshow')}
           onPress={() => setPlaying(!playing)}
           style={{ width: TouchTarget, height: TouchTarget, alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name={playing && !reduceMotion ? 'pause' : 'play'} size={26} color={Palette.mist} />
@@ -98,7 +99,7 @@ export default function MonthScreen() {
                   {age ? ` · ${age}` : ''}
                 </Text>
                 <Text style={{ color: Palette.mistSoft }}>
-                  {highlights.length === 0 ? 'No moments this month yet.' : `${highlights.length} moments to remember`}
+                  {highlights.length === 0 ? t('No moments this month yet.') : tn(highlights.length, '{n} moment to remember', '{n} moments to remember')}
                 </Text>
               </>
             ) : (

@@ -3,6 +3,7 @@
 import * as Crypto from 'expo-crypto';
 
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 
 export const PACKAGE_NAME = 'com.tmdrudfuf.babyjournal';
 export const PRODUCT_IDS = ['plus_monthly', 'plus_yearly', 'family_monthly', 'family_yearly'];
@@ -17,9 +18,12 @@ export interface Store {
   owned(): Promise<Owned[]>;
 }
 
-const PERIOD: Record<string, string> = { day: 'day', week: 'week', month: 'month', year: 'year' };
-const periodLabel = (p?: { unit: string; value: number } | null) =>
-  !p || !PERIOD[p.unit] ? '' : p.value === 1 ? PERIOD[p.unit] : `${p.value} ${PERIOD[p.unit]}s`;
+const periodLabel = (p?: { unit: string; value: number } | null): string => {
+  const one: Record<string, string> = { day: t('day'), week: t('week'), month: t('month'), year: t('year') };
+  const many: Record<string, string> = { day: t('{n} days'), week: t('{n} weeks'), month: t('{n} months'), year: t('{n} years') };
+  if (!p || !one[p.unit]) return '';
+  return p.value === 1 ? one[p.unit] : many[p.unit].replace('{n}', String(p.value));
+};
 
 // Test-only store (EXPO_PUBLIC_BILLING=mock). The server accepts its tokens only when BILLING_PROVIDER=mock.
 function mockStore(): Store {
@@ -29,7 +33,7 @@ function mockStore(): Store {
     family_monthly: ['$7.99 (test)', 'month'], family_yearly: ['$59.99 (test)', 'year'],
   };
   return {
-    offers: async () => PRODUCT_IDS.map((productId) => ({ productId, price: prices[productId][0], period: prices[productId][1], offerToken: null })),
+    offers: async () => PRODUCT_IDS.map((productId) => ({ productId, price: prices[productId][0], period: prices[productId][1] === 'month' ? t('month') : t('year'), offerToken: null })),
     async buy(offer, accountTag) {
       const owned = { productId: offer.productId, token: `mock:active:${accountTag}:${Crypto.randomUUID()}`, finish: async () => undefined };
       bought.push(owned);
