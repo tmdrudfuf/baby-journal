@@ -3,6 +3,7 @@ import { assertEquals, assertRejects } from 'jsr:@std/assert@1';
 
 import { groundCitations } from './ai.ts';
 import { anthropicProvider } from './anthropic.ts';
+import { openaiProvider } from './openai.ts';
 import { mockCalls, mockProvider, MOCK_FAIL_MARKER } from './mock-ai.ts';
 
 const input = { text: '오늘 처음으로 혼자 뒤집었어.', occurredOn: '2026-09-26', babyAgeDays: 184 };
@@ -72,4 +73,37 @@ Deno.test('ask: answer is parsed, notes are numbered and truncated', async () =>
 Deno.test('grounding drops citations to notes that were not retrieved', () => {
   assertEquals(groundCitations([1, 3, 3, 9, 0, -1, 1.5, 'x'], 3), [1, 3]);
   assertEquals(groundCitations('nope', 3), []);
+});
+
+// OpenAI (Responses API): minimal fake of the fields the provider reads.
+function fakeOpenAI(response: Record<string, unknown>) {
+  const sent: unknown[] = [];
+  // deno-lint-ignore no-explicit-any
+  const create = ((params: unknown) => {
+    sent.push(params);
+    return Promise.resolve({ model: 'gpt-5.4-mini', status: 'completed', usage: { input_tokens: 90, output_tokens: 25 }, ...response });
+  }) as any;
+  return { create, sent };
+}
+const message = (...content: unknown[]) => [{ type: 'message', content }];
+
+Deno.test('openai: parses structured output, reports usage, sends only the prompt with store off', async () => {
+  const { create, sent } = fakeOpenAI({ output: message({ type: 'output_text', text: '{"story":"뒤집기!","milestone":"첫 뒤집기"}' }) });
+  const { result, usage } = await openaiProvider('k', 'gpt-5.4-mini', create).journal(input);
+  assertEquals(result, { story: '뒤집기!', milestone: '첫 뒤집기' });
+  assertEquals(usage, { provider: 'openai', model: 'gpt-5.4-mini', inputTokens: 90, outputTokens: 25 });
+  const params = sent[0] as { input: string; store: boolean; text: { format: { type: string; strict: boolean } } };
+  assertEquals(params.input, 'Date: 2026-09-26\nBaby\'s age: 184 days.\nParent\'s note:\n오늘 처음으로 혼자 뒤집었어.');
+  assertEquals(params.store, false);
+  assertEquals(params.text.format.type, 'json_schema');
+  assertEquals(params.text.format.strict, true);
+});
+
+Deno.test('openai: refusal gives no suggestion; incomplete or malformed output is a failure', async () => {
+  const refused = fakeOpenAI({ output: message({ type: 'refusal', refusal: 'no' }) });
+  assertEquals((await openaiProvider('k', 'm', refused.create).journal(input)).result, { story: null, milestone: null });
+  await assertRejects(() =>
+    openaiProvider('k', 'm', fakeOpenAI({ status: 'incomplete', incomplete_details: { reason: 'max_output_tokens' }, output: [] }).create).journal(input),
+  );
+  await assertRejects(() => openaiProvider('k', 'm', fakeOpenAI({ output: message({ type: 'output_text', text: 'nope' }) }).create).journal(input));
 });

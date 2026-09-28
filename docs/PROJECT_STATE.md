@@ -46,7 +46,7 @@ The closing step for M1 and M3 is a **physical-device test by the owner** (APK b
 - Expo/EAS: project `@tmdrudfuf/baby-journal` (b539689d-d022-4104-a66f-c140347e1740); Android keystore managed by EAS.
 
 ## Required human actions
-1. Anthropic API key (needed only to verify real Claude output). Then: `npx supabase secrets set AI_PROVIDER=anthropic ANTHROPIC_API_KEY=... --project-ref stdlwvahmexetlrrzpld`.
+1. AI key (owner uses OpenAI): add `OPENAI_API_KEY=...` to local `.env`; then `supabase secrets set AI_PROVIDER=openai OPENAI_API_KEY=... [AI_OPENAI_MODEL=gpt-5.4-mini] [AI_PRICE_PER_MTOK=in,out]`, and update the privacy policy / Data Safety / in-app text to name OpenAI. Anthropic remains supported (`AI_PROVIDER=anthropic`).
 2. Optional: a real second phone joining via invite (M3 is already verified with two accounts).
 3. Google Play Console (needed to verify real subscriptions; see M8): developer account, products `plus_monthly`, `plus_yearly`, `family_monthly`, `family_yearly`, a service account with Play Developer API access (JSON key → `GOOGLE_PLAY_SERVICE_ACCOUNT` secret, `BILLING_PROVIDER=google`), a license tester, and an internal-testing upload (only with explicit approval).
 4. Later: paid Supabase plan for production; crash/analytics provider.

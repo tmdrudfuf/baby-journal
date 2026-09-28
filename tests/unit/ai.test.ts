@@ -16,3 +16,10 @@ test('cost estimate uses per-model prices; unknown models cost 0 rather than cra
   expect(estimateCostUsd({ provider: 'anthropic', model: 'claude-opus-5', inputTokens: 1_000_000, outputTokens: 0 })).toBe(5);
   expect(estimateCostUsd({ provider: 'x', model: 'unknown', inputTokens: 10, outputTokens: 10 })).toBe(0);
 });
+
+test('unknown models can be priced by configuration', () => {
+  const u = { provider: 'openai', model: 'gpt-5.4-mini', inputTokens: 1_000_000, outputTokens: 1_000_000 };
+  expect(estimateCostUsd(u)).toBe(0);
+  expect(estimateCostUsd(u, '0.5,2')).toBe(2.5);
+  expect(estimateCostUsd(u, 'junk')).toBe(0);
+});

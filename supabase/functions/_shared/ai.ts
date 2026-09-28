@@ -128,8 +128,10 @@ const PRICES: Record<string, [number, number]> = {
   'claude-haiku-4-5': [1, 5],
 };
 
-export function estimateCostUsd(u: Usage): number {
-  const [inp, out] = PRICES[u.model] ?? [0, 0];
+// Models not in the table can be priced without a deploy: AI_PRICE_PER_MTOK="in,out" (USD per million tokens).
+export function estimateCostUsd(u: Usage, override?: string): number {
+  const custom = override?.split(',').map(Number);
+  const [inp, out] = PRICES[u.model] ?? (custom?.length === 2 && custom.every(Number.isFinite) ? custom : [0, 0]);
   return (u.inputTokens * inp + u.outputTokens * out) / 1_000_000;
 }
 

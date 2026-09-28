@@ -18,11 +18,13 @@ import {
 } from '../_shared/ai.ts';
 import { anthropicProvider } from '../_shared/anthropic.ts';
 import { embed } from '../_shared/embed.ts';
+import { openaiProvider } from '../_shared/openai.ts';
 import { localDay } from '../_shared/export-doc.ts';
 import { mockProvider } from '../_shared/mock-ai.ts';
 
 const DAILY_LIMIT = Number(Deno.env.get('AI_DAILY_LIMIT_PER_FAMILY') ?? '50'); // cost guardrail (§42)
 const MODEL = Deno.env.get('AI_JOURNAL_MODEL') ?? 'claude-opus-5';
+const OPENAI_MODEL = Deno.env.get('AI_OPENAI_MODEL') ?? 'gpt-5.4-mini';
 const DAY_MS = 86_400_000;
 
 const json = (body: unknown, status = 200) =>
@@ -32,6 +34,10 @@ const json = (body: unknown, status = 200) =>
 function provider(): AiProvider | null {
   const choice = Deno.env.get('AI_PROVIDER') ?? 'anthropic';
   if (choice === 'mock') return mockProvider();
+  if (choice === 'openai') {
+    const key = Deno.env.get('OPENAI_API_KEY');
+    return key ? openaiProvider(key, OPENAI_MODEL) : null;
+  }
   const key = Deno.env.get('ANTHROPIC_API_KEY');
   return choice === 'anthropic' && key ? anthropicProvider(key, MODEL) : null;
 }
@@ -68,7 +74,7 @@ function recordUsage(ctx: Ctx, familyId: string, feature: string, started: numbe
   return ctx.admin.from('ai_usage').insert({
     family_id: familyId, user_id: ctx.userId, feature, provider: usage.provider, model: usage.model,
     input_tokens: ok ? usage.inputTokens : 0, output_tokens: ok ? usage.outputTokens : 0,
-    latency_ms: Date.now() - started, est_cost_usd: ok ? estimateCostUsd(usage) : 0, ok,
+    latency_ms: Date.now() - started, est_cost_usd: ok ? estimateCostUsd(usage, Deno.env.get('AI_PRICE_PER_MTOK')) : 0, ok,
   });
 }
 
@@ -135,7 +141,7 @@ async function ask(ctx: Ctx, babyId: unknown, question: unknown) {
     // Cited memories first, then the rest of what search found.
     return json({ status: 'done', answer, sources: answer ? [...cited, ...sources.filter((s) => !cited.includes(s))] : sources });
   } catch (e) {
-    await recordUsage(ctx, baby.family_id, 'ask', started, { provider: ai.name, model: MODEL });
+    await recordUsage(ctx, baby.family_id, 'ask', started, { provider: ai.name, model: ai.name === 'openai' ? OPENAI_MODEL : MODEL });
     console.error('ask failed', (e as Error).message);
     return json({ status: 'sources_only', reason: 'provider error', answer: null, sources });
   }
@@ -189,7 +195,7 @@ async function journal(ctx: Ctx, memoryId: unknown) {
       .eq('id', m.id);
     return json({ status: 'done' });
   } catch (e) {
-    await recordUsage(ctx, m.family_id, 'journal', started, { provider: ai.name, model: MODEL });
+    await recordUsage(ctx, m.family_id, 'journal', started, { provider: ai.name, model: ai.name === 'openai' ? OPENAI_MODEL : MODEL });
     await ctx.admin.from('memories').update({ ai_status: 'failed' }).eq('id', m.id);
     console.error('ai-journal failed', (e as Error).message); // no memory content in logs (§44)
     return json({ status: 'unavailable', reason: 'provider error' });
@@ -240,7 +246,7 @@ async function daily(ctx: Ctx, babyId: unknown, day: unknown) {
     });
     return json({ status: 'done' });
   } catch (e) {
-    await recordUsage(ctx, baby.family_id, 'daily', started, { provider: ai.name, model: MODEL });
+    await recordUsage(ctx, baby.family_id, 'daily', started, { provider: ai.name, model: ai.name === 'openai' ? OPENAI_MODEL : MODEL });
     console.error('daily story failed', (e as Error).message);
     return json({ status: 'unavailable', reason: 'provider error' });
   }

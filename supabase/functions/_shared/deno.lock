@@ -3,7 +3,8 @@
   "specifiers": {
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/internal@^1.0.12": "1.0.14",
-    "npm:@anthropic-ai/sdk@0": "0.128.0"
+    "npm:@anthropic-ai/sdk@0": "0.128.0",
+    "npm:openai@7": "7.23.0"
   },
   "jsr": {
     "@std/assert@1.0.19": {
@@ -40,6 +41,9 @@
         "@babel/runtime",
         "ts-algebra"
       ]
+    },
+    "openai@7.23.0": {
+      "integrity": "sha512-0ecOXnFSMNWZq6cUBcTV6Lf93y+fm8BH/+QzFvpoP1UGNOE5pnytRa6HAPGCw+3IS9SIAW7rc1M8yyzN1PiBAQ=="
     },
     "standardwebhooks@1.1.1": {
       "integrity": "sha512-bCbX9ZEyFkWPsRz7Bl3NuQUJohmwGSev/yhr7vhaGPlc4AfIrspIRa6cPTBuI1ItmrTDJ4d/S2hCsfe4+vQGnQ==",
