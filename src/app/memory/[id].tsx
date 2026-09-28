@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 
 import { MemoryImage } from '@/components/memory-image';
 import { MemorySocial } from '@/components/memory-social';
+import { MemoryVideo } from '@/components/memory-video';
 import { SyncBadge } from '@/components/sync-badge';
 import { Actions, Button, Card, Field, Screen, Text } from '@/components/ui';
 import { Radius } from '@/constants/theme';
@@ -52,10 +53,10 @@ export default function MemoryScreen() {
   }
 
   function confirmDelete() {
-    Alert.alert('Delete this memory?', 'It will be removed for everyone in your family. This cannot be undone.', [
+    Alert.alert(t('Delete this memory?'), t('It will be removed for everyone in your family. This cannot be undone.'), [
       { text: t('Cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('Delete'),
         style: 'destructive',
         onPress: () => {
           markDeleting(m.id);
@@ -68,8 +69,22 @@ export default function MemoryScreen() {
 
   return (
     <Screen>
-      {hasPhoto && (
-        <MemoryImage localUri={memory.photo_path} assetId={memory.display_asset_id} style={{ width: '100%', aspectRatio: 4 / 5, borderRadius: Radius.lg }} />
+      {memory.type === 'video' && (memory.video_path || memory.playback_asset_id) ? (
+        <MemoryVideo
+          localUri={memory.video_path}
+          assetId={memory.playback_asset_id}
+          poster={{ localUri: memory.photo_path, assetId: memory.display_asset_id }}
+          style={{ width: '100%', aspectRatio: 4 / 5, borderRadius: Radius.lg, overflow: 'hidden', backgroundColor: '#000' }}
+        />
+      ) : (
+        hasPhoto && (
+          <MemoryImage
+            localUri={memory.photo_path}
+            assetId={memory.display_asset_id}
+            video={memory.type === 'video'}
+            style={{ width: '100%', aspectRatio: 4 / 5, borderRadius: Radius.lg }}
+          />
+        )
       )}
       <Text variant="caption" color="textSecondary">
         {formatDate(memory.occurred_at)} · {formatTime(memory.occurred_at)}

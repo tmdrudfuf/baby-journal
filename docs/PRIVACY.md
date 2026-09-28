@@ -10,7 +10,7 @@ privacy policy and the Google Play Data Safety form (masterplan §37, §50).
 | Email + password (hashed by Supabase Auth) | Supabase Auth | Sign-in |
 | Display name ("Mom", "Grandma") | `profiles` | Show who recorded or commented |
 | Baby name, birth date | `babies` | Day count, age labels |
-| Memories: text, capture time, photos | `memories`, R2 (`families/{id}/memories/{id}/`) | The journal |
+| Memories: text, capture time, photos, short videos (≤30 s, paid plans) | `memories`, R2 (`families/{id}/memories/{id}/`) | The journal |
 | Tracker logs: feeds, sleep, diapers, growth | `tracker_events` | Tracker, summaries |
 | Comments, hearts | `comments`, `reactions` | Family engagement |
 | AI usage (tokens, cost, feature; no content) | `ai_usage` | Cost control (§39) |
@@ -22,7 +22,8 @@ advertising IDs, analytics about journal content. There is no advertising and no
 
 - Only members of the family, enforced in the database (row-level security, tested in `supabase/tests`).
 - Private memories: only the author.
-- Photos are served through 5-minute signed URLs; there are no public links.
+- Photos and videos are served through 5-minute signed URLs; there are no public links.
+- Videos are stored as recorded (no re-encoding), so any location the camera embedded is kept; the still frame used for previews is re-encoded without metadata.
 - AI (when enabled): only the one note being processed, its date and the baby's age are sent to the
   AI provider (OpenAI; requests sent with `store: false`; Anthropic is supported as an alternative). No photos and no other history. A Daily Story, only when a family member asks
   for one, sends that day's notes the same way (`daily_stories`). Asking the journal a question sends the question

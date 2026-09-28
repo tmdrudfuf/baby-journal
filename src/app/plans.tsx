@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { useApp, useBaby } from '@/state/app';
 import { t } from '@/lib/i18n';
 
-type Plan = { id: string; storage_bytes: number; max_members: number; originals: boolean; ai_daily: boolean; ai_ask: boolean };
+type Plan = { id: string; storage_bytes: number; max_members: number; originals: boolean; ai_daily: boolean; ai_ask: boolean; video: boolean };
 
 const label = (id: string) => ({ free: t('Free'), plus: t('Plus'), family: t('Family') })[id] ?? id;
 const gb = (b: number) => `${Math.round(b / 1024 ** 3)} GB`;
@@ -19,6 +19,7 @@ const features = (p: Plan) =>
     t('Up to {n} family members', { n: p.max_members }),
     p.ai_daily && t('AI Daily Story'),
     p.ai_ask && t('Ask your journal (AI answers)'),
+    p.video && t('Video clips (up to 30 seconds)'),
     p.originals && t('Original-quality backup'),
   ].filter(Boolean) as string[];
 

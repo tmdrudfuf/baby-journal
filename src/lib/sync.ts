@@ -12,9 +12,10 @@ import { isDue, isPermanent, PermanentError, retryDelayMs } from '@/lib/sync-pol
 
 const PULL_LIMIT = 500;
 
-async function uploadVariant(m: local.LocalMemory, variant: 'display' | 'thumbnail', path: string) {
+async function uploadVariant(m: local.LocalMemory, variant: 'display' | 'thumbnail' | 'playback', path: string) {
+  const ext = variant === 'playback' ? 'mp4' : 'jpg';
   // Always re-sign: signed URLs expire in minutes and must never be queued.
-  const data = await mediaSign<{ url: string; content_type: string }>({ action: 'upload', memory_id: m.id, variant, ext: 'jpg' });
+  const data = await mediaSign<{ url: string; content_type: string }>({ action: 'upload', memory_id: m.id, variant, ext });
   const put = await new File(path).upload(data.url, {
     httpMethod: 'PUT',
     uploadType: UploadType.BINARY_CONTENT,
@@ -22,7 +23,7 @@ async function uploadVariant(m: local.LocalMemory, variant: 'display' | 'thumbna
   });
   if (put.status < 200 || put.status >= 300) throw new Error(`upload failed (${put.status})`);
   // The server measures the stored object and records the asset; retries are idempotent.
-  await mediaSign({ action: 'confirm', memory_id: m.id, variant, ext: 'jpg' });
+  await mediaSign({ action: 'confirm', memory_id: m.id, variant, ext });
 }
 
 // Rows the server has seen are updated, never upserted: if another family member deleted
@@ -53,10 +54,13 @@ async function push(m: local.LocalMemory) {
     await uploadVariant(m, 'thumbnail', m.thumb_path!);
     await uploadVariant(m, 'display', m.photo_path);
   }
+  // The clip uploads after its still frame, so the memory shows up for the family right away.
+  if (m.video_path && !m.playback_asset_id) await uploadVariant(m, 'playback', m.video_path);
   const { data: assets } = await supabase.from('memory_assets').select('id, variant').eq('memory_id', m.id);
   local.markSynced(m.id, {
     display: assets?.find((a) => a.variant === 'display')?.id,
     thumbnail: assets?.find((a) => a.variant === 'thumbnail')?.id,
+    playback: assets?.find((a) => a.variant === 'playback')?.id,
   });
   // AI suggestions are optional and never block the memory (§54): fire and forget.
   if (m.raw_text) {
@@ -91,6 +95,7 @@ async function pull(babyId: string) {
     author_name: author?.display_name ?? null,
     display_asset_id: memory_assets.find((a) => a.variant === 'display')?.id ?? null,
     thumb_asset_id: memory_assets.find((a) => a.variant === 'thumbnail')?.id ?? null,
+    playback_asset_id: memory_assets.find((a) => a.variant === 'playback')?.id ?? null,
   }));
   // ponytail: pulls the newest 500 only; paginate when a family has more.
   const pruned = local.mergeRemote(babyId, rows, rows.length < PULL_LIMIT);

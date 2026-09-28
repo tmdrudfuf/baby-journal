@@ -40,6 +40,6 @@ which the app treats as retryable. Non-authenticated callers get 401.
 - Closed: object size is measured server-side (`media-sign` confirm, 5 MB/variant cap) and only the server
   writes `memory_assets` rows, so quota counts cannot be under-reported (M10).
 - Closed: last-owner guard (M3); scheduled R2 purge every 15 min (pg_cron).
-- Open: an object uploaded with a presigned URL but never confirmed stays in R2 unaccounted (at most one
+- Open (bigger with video: up to 150 MB per clip, 1 h upload links): an object uploaded with a presigned URL but never confirmed stays in R2 unaccounted (at most one
   5-minute URL per request, rate-limited). Add an R2 lifecycle sweep of unreferenced keys before launch.
 - Open: Play real-time developer notifications (refunds/revocations are picked up by the 6-hourly refresh).

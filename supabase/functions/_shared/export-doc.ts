@@ -6,7 +6,8 @@ export type ExportMemory = {
   raw_text: string | null;
   story_text: string | null;
   author: string | null;
-  photo: string | null; // path inside the zip, e.g. photos/<id>.jpg
+  photo: string | null; // path inside the zip, e.g. photos/<id>.jpg (a video's still frame)
+  video?: string | null; // signed download link (24 h): clips are too large to zip
   comments: { author: string | null; body: string; created_at: string }[];
 };
 
@@ -40,6 +41,7 @@ export function exportHtml(babies: ExportBaby[], exportedAt: string, timeZone = 
       (m) => `<article>
     <p class="meta">${esc(day(m.occurred_at))}${m.author ? ` · ${esc(m.author)}` : ''}</p>
     ${m.photo ? `<img src="${esc(m.photo)}" alt="">` : ''}
+    ${m.video ? `<p><a href="${esc(m.video)}">▶ Download video (link works for 24 hours)</a></p>` : ''}
     ${m.raw_text ? `<p>${esc(m.raw_text)}</p>` : ''}
     ${m.story_text ? `<p class="story">${esc(m.story_text)}</p>` : ''}
     ${m.comments.map((c) => `<p class="comment">${esc(c.author ?? 'Family member')}: ${esc(c.body)}</p>`).join('')}

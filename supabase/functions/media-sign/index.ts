@@ -68,9 +68,20 @@ const LIMITS: Record<string, [number, number]> = {
 };
 
 const EXPORT_TTL_SECONDS = 86_400;
-const MAX_VARIANT_BYTES = 5 * 1024 * 1024; // display variants are ~0.3 MB; headroom for quota checks
+// Per-variant size caps, enforced when `confirm` measures the stored object (images ~0.3 MB, clips ≤30 s).
+const MAX_BYTES: Record<string, number> = { playback: 150 * 1024 * 1024 };
+const maxBytes = (variant: string) => MAX_BYTES[variant] ?? 5 * 1024 * 1024;
+// Large clips on mobile data need longer than the 5-minute photo URL.
+const PLAYBACK_URL_TTL_SECONDS = 3600;
 // Edge functions get 256 MB and 2 s CPU: photos are split into parts; unzip all parts into one folder.
 const EXPORT_PHOTOS_PER_PART = 50; // measured: 50 × 350 KB ≈ 13 s; 200 exceeded compute limits
+
+// Video is a plan feature (plans.video); read with the service role so the check can't be spoofed.
+async function videoAllowed(familyId: string): Promise<boolean> {
+  const admin = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
+  const { data } = await admin.rpc('family_plan', { fid: familyId });
+  return (data as { video?: boolean } | null)?.video === true;
+}
 
 // The gateway already verified the JWT signature; this only reads its role claim.
 function jwtRole(req: Request): string | null {
@@ -145,10 +156,11 @@ Deno.serve(async (req) => {
     if (!allowed) return json({ error: 'forbidden' }, 403);
     // family_id comes from the database, never the client, so keys can't land in another family's namespace.
     const { data: memory } = await db.from('memories').select('family_id').eq('id', body.memory_id).single();
-    // Refuse before signing so an over-quota photo never lands in R2 without a row (the DB trigger is the backstop).
+    // Refuse before signing so an over-quota file never lands in R2 without a row (the DB trigger is the backstop).
     const { data: usage } = await db.rpc('family_usage', { fid: memory!.family_id });
     const u = usage?.[0];
-    if (u && u.used_bytes + MAX_VARIANT_BYTES > u.storage_bytes) return json({ error: 'storage quota exceeded' }, 403);
+    if (u && u.used_bytes + maxBytes(String(body.variant)) > u.storage_bytes) return json({ error: 'storage quota exceeded' }, 403);
+    if (body.variant === 'playback' && !(await videoAllowed(memory!.family_id))) return json({ error: 'video needs a paid plan' }, 403);
     let key: string;
     try {
       key = uploadKey({ ...(body as { variant: string; ext: string }), family_id: memory!.family_id, memory_id: body.memory_id });
@@ -156,11 +168,12 @@ Deno.serve(async (req) => {
       return json({ error: (e as Error).message }, 400);
     }
     // A presigned PUT cannot cap the size; `confirm` measures the stored object before it counts.
+    const ttl = body.variant === 'playback' ? PLAYBACK_URL_TTL_SECONDS : URL_TTL_SECONDS;
     return json({
-      url: await presign('PUT', key),
+      url: await presign('PUT', key, ttl),
       object_key: key,
       content_type: EXTENSIONS[body.ext as string],
-      expires_in: URL_TTL_SECONDS,
+      expires_in: ttl,
     });
   }
 
@@ -181,14 +194,14 @@ Deno.serve(async (req) => {
     if (head.status === 404) return json({ error: 'object not uploaded' }, 404);
     if (!head.ok) return json({ error: 'storage unavailable' }, 503);
     const bytes = Number(head.headers.get('content-length') ?? 'NaN');
-    if (!Number.isFinite(bytes) || bytes > MAX_VARIANT_BYTES) {
+    if (!Number.isFinite(bytes) || bytes > maxBytes(String(body.variant)) || (body.variant === 'playback' && !(await videoAllowed(memory!.family_id)))) {
       await r2.fetch(`${bucketUrl}/${key}`, { method: 'DELETE' });
       return json({ error: 'file too large' }, 413);
     }
     const admin = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
     const { error } = await admin.from('memory_assets').upsert(
       {
-        memory_id: body.memory_id, family_id: memory!.family_id, object_key: key, asset_type: 'photo',
+        memory_id: body.memory_id, family_id: memory!.family_id, object_key: key, asset_type: body.ext === 'mp4' ? 'video' : 'photo',
         mime_type: EXTENSIONS[body.ext as string], variant: body.variant, bytes,
       },
       { onConflict: 'memory_id,variant', ignoreDuplicates: true },
@@ -238,6 +251,9 @@ Deno.serve(async (req) => {
       const memories = [];
       for (const m of mem.data ?? []) {
         const key = m.memory_assets.find((a: { variant: string }) => a.variant === 'display')?.object_key;
+        const clip = m.memory_assets.find((a: { variant: string }) => a.variant === 'playback')?.object_key;
+        // ponytail: clips are linked, not zipped (edge functions have 256 MB); add a video-only export if families ask.
+        const video = clip ? await presign('GET', clip, EXPORT_TTL_SECONDS) : null;
         let photo: string | null = null;
         if (key) {
           const path = `photos/${localDay(m.occurred_at, tz)}-${m.id.slice(0, 8)}.jpg`;
@@ -259,6 +275,7 @@ Deno.serve(async (req) => {
           story_text: m.story_text,
           author: (m.author as unknown as { display_name: string | null } | null)?.display_name ?? null,
           photo,
+          video,
           comments: ((m.comments ?? []) as unknown as { body: string; created_at: string; author: { display_name: string | null } | null }[]).map((c) => ({
             author: c.author?.display_name ?? null,
             body: c.body,

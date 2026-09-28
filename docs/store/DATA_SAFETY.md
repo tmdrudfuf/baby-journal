@@ -19,6 +19,7 @@ they are legal declarations.**
 | Personal info → Email address | Yes | Account management | Required |
 | Personal info → Name (display name, baby's name) | Yes | App functionality | Display name optional; baby name required |
 | Photos and videos → Photos | Yes | App functionality | Optional |
+| Photos and videos → Videos | Yes (short clips, Plus/Family plans) | App functionality | Optional |
 | Personal info → Other (baby birth date) | Yes | App functionality | Required |
 | Health and fitness → Health info (feeding, sleep, diaper, growth logs) | Yes | App functionality | Optional |
 | App activity → Other user-generated content (notes, comments) | Yes | App functionality | Optional |
@@ -30,6 +31,8 @@ Processed by AI (when enabled): the text of a single note, its date and the baby
 suggest a journal line (or, on request, that day's notes for a Daily Story, or a question plus up to 8 matching notes); not used for advertising. The family owner can turn this off.
 
 ## Open items for the human
+
+- Videos: clips are uploaded as recorded, so a camera-embedded location stays in the file (photos are stripped). Before submission either strip video metadata (needs a video processing library) or answer "Location" accordingly.
 
 - Target audience and content settings: adults (parents/caregivers).
 - Privacy policy URL: https://tmdrudfuf.github.io/baby-journal/privacy.html

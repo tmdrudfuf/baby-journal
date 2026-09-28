@@ -269,15 +269,34 @@ isOneToOne: false
       referencedColumns: ["id","family_id"]
     }
                   ]
-                },"plans": {
+                },"plan_products": {
                   Row: {
-                    "id": string,"max_members": number,"originals": boolean,"storage_bytes": number
+                    "plan_id": string,"product_id": string
                   }
                   Insert: {
-                    "id": string,"max_members": number,"originals"?: boolean,"storage_bytes": number
+                    "plan_id": string,"product_id": string
                   }
                   Update: {
-                    "id"?: string,"max_members"?: number,"originals"?: boolean,"storage_bytes"?: number
+                    "plan_id"?: string,"product_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "plan_products_plan_id_fkey"
+      columns: ["plan_id"]
+isOneToOne: false
+      referencedRelation: "plans"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"plans": {
+                  Row: {
+                    "ai_ask": boolean,"ai_daily": boolean,"id": string,"max_members": number,"originals": boolean,"storage_bytes": number,"video": boolean
+                  }
+                  Insert: {
+                    "ai_ask"?: boolean,"ai_daily"?: boolean,"id": string,"max_members": number,"originals"?: boolean,"storage_bytes": number,"video"?: boolean
+                  }
+                  Update: {
+                    "ai_ask"?: boolean,"ai_daily"?: boolean,"id"?: string,"max_members"?: number,"originals"?: boolean,"storage_bytes"?: number,"video"?: boolean
                   }
                   Relationships: [
                     
@@ -294,6 +313,31 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"purchases": {
+                  Row: {
+                    "acknowledged": boolean,"expires_at": string | null,"family_id": string,"product_id": string,"provider": string,"purchase_token": string,"state": string,"updated_at": string,"user_id": string | null
+                  }
+                  Insert: {
+                    "acknowledged"?: boolean,"expires_at"?: string | null,"family_id": string,"product_id": string,"provider": string,"purchase_token": string,"state": string,"updated_at"?: string,"user_id"?: string | null
+                  }
+                  Update: {
+                    "acknowledged"?: boolean,"expires_at"?: string | null,"family_id"?: string,"product_id"?: string,"provider"?: string,"purchase_token"?: string,"state"?: string,"updated_at"?: string,"user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "purchases_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "purchases_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "plan_products"
+      referencedColumns: ["product_id"]
+    }
                   ]
                 },"rate_limits": {
                   Row: {
@@ -372,10 +416,13 @@ isOneToOne: false
                            },
 "family_plan":
 { Args: { "fid": string }; Returns: {
-              "id": string,
+              "ai_ask": boolean,
+"ai_daily": boolean,
+"id": string,
 "max_members": number,
 "originals": boolean,
-"storage_bytes": number
+"storage_bytes": number,
+"video": boolean
             }
                           SetofOptions: {
         from: "*"
@@ -398,6 +445,9 @@ isOneToOne: false
 { Args: { "bid": string,"k"?: number,"query": string }; Returns: {
               "id": string,"occurred_at": string,"raw_text": string,"similarity": number,"story_text": string
             }[]
+                           },
+"sync_store_entitlement":
+{ Args: { "fid": string }; Returns: undefined
                            }
           }
           Enums: {

@@ -22,7 +22,7 @@ function MemoryCard({ memory, milestone }: { memory: LocalMemory; milestone?: st
     <Pressable accessibilityRole="button" accessibilityLabel={t('Memory from {date}', { date: formatDate(memory.occurred_at) })} onPress={() => router.push(`/memory/${memory.id}`)}>
       <Card>
         {hasPhoto && (
-          <MemoryImage localUri={memory.photo_path} assetId={memory.display_asset_id} style={{ width: '100%', aspectRatio: 1, borderRadius: Radius.md }} />
+          <MemoryImage localUri={memory.photo_path} assetId={memory.display_asset_id} video={memory.type === 'video'} style={{ width: '100%', aspectRatio: 1, borderRadius: Radius.md }} />
         )}
         {milestone && <Text variant="label">✨ {milestone}</Text>}
         {memory.raw_text && <Text numberOfLines={4}>{memory.raw_text}</Text>}

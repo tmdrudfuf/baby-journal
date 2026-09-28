@@ -44,9 +44,9 @@ async function flush() {
   }
 }
 
-type Props = { localUri: string | null; assetId: string | null; style: StyleProp<ImageStyle>; label?: string };
+type Props = { localUri: string | null; assetId: string | null; style: StyleProp<ImageStyle>; label?: string; video?: boolean };
 
-export function MemoryImage({ localUri, assetId, style, label }: Props) {
+export function MemoryImage({ localUri, assetId, style, label, video }: Props) {
   const theme = useTheme();
   const [remote, setRemote] = useState<Signed>(undefined);
 
@@ -73,13 +73,22 @@ export function MemoryImage({ localUri, assetId, style, label }: Props) {
 
   // cacheKey = asset id, so a fresh signature doesn't re-download the same image.
   const source = localUri ? { uri: localUri } : remote && assetId ? { uri: remote, cacheKey: assetId } : null;
-  return (
+  const image = (
     <Image
       source={source}
       style={[{ backgroundColor: theme.surface }, style]}
       contentFit="cover"
       transition={150}
-      accessibilityLabel={label ?? t('Memory photo')}
+      accessibilityLabel={label ?? (video ? t('Memory video') : t('Memory photo'))}
     />
+  );
+  if (!video) return image;
+  return (
+    <View>
+      {image}
+      <View pointerEvents="none" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name="play-circle" size={44} color="rgba(255,255,255,0.92)" />
+      </View>
+    </View>
   );
 }

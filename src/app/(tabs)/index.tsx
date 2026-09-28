@@ -24,7 +24,7 @@ function MomentTile({ memory }: { memory: LocalMemory }) {
       accessibilityLabel={`${memory.raw_text || t('Photo')}, ${formatTime(memory.occurred_at)}`}
       onPress={() => router.push(`/memory/${memory.id}`)}>
       {hasPhoto ? (
-        <MemoryImage localUri={memory.thumb_path} assetId={memory.thumb_asset_id} style={{ width: TILE, height: TILE, borderRadius: Radius.sm }} />
+        <MemoryImage localUri={memory.thumb_path} assetId={memory.thumb_asset_id} video={memory.type === 'video'} style={{ width: TILE, height: TILE, borderRadius: Radius.sm }} />
       ) : (
         <View style={{ width: TILE, height: TILE, borderRadius: Radius.sm, backgroundColor: theme.background, padding: Spacing.xs, justifyContent: 'center' }}>
           <Text variant="caption" numberOfLines={3}>
@@ -69,7 +69,7 @@ export default function HomeScreen() {
 
       {hero && (
         <Pressable accessibilityRole="button" accessibilityLabel={t('Open latest photo')} onPress={() => router.push(`/memory/${hero.id}`)}>
-          <MemoryImage localUri={hero.photo_path} assetId={hero.display_asset_id} style={{ width: '100%', aspectRatio: 4 / 5, borderRadius: Radius.lg }} />
+          <MemoryImage localUri={hero.photo_path} assetId={hero.display_asset_id} video={hero.type === 'video'} style={{ width: '100%', aspectRatio: 4 / 5, borderRadius: Radius.lg }} />
         </Pressable>
       )}
       {day && day > 0 && (
@@ -88,7 +88,7 @@ export default function HomeScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={t('Memory from {date}', { date: formatDate(m.occurred_at) })}
                 onPress={() => router.push(`/memory/${m.id}`)}>
-                <MemoryImage localUri={m.thumb_path} assetId={m.thumb_asset_id} style={{ width: 120, height: 120, borderRadius: Radius.md }} />
+                <MemoryImage localUri={m.thumb_path} assetId={m.thumb_asset_id} video={m.type === 'video'} style={{ width: 120, height: 120, borderRadius: Radius.md }} />
               </Pressable>
             ))}
           </ScrollView>

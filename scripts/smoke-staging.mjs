@@ -75,6 +75,30 @@ try {
   if (asset.id in anonUrls) throw new Error('anon got a signed URL');
   console.log(`5. anon got no signed URL (status ${anonSign.status})`);
 
+  // Video: a paid-plan feature, measured like photos, and still downloadable after a downgrade.
+  const clipReq = { action: 'upload', memory_id: memoryId, variant: 'playback', ext: 'mp4' };
+  let freeRefused = false;
+  try {
+    await as('/functions/v1/media-sign', { method: 'POST', body: clipReq });
+  } catch (e) { freeRefused = String(e.message).includes('403') && String(e.message).includes('paid plan'); }
+  if (!freeRefused) throw new Error('a Free family could upload a video');
+  console.log('5b. video refused on the Free plan');
+  await call('/rest/v1/entitlements', { method: 'POST', token: service, key: service, body: { family_id: familyId, plan_id: 'plus', source: 'manual' } });
+  const clipUp = await as('/functions/v1/media-sign', { method: 'POST', body: clipReq });
+  if (clipUp.expires_in !== 3600 || clipUp.content_type !== 'video/mp4') throw new Error(`unexpected video upload link: ${clipUp.expires_in}s ${clipUp.content_type}`);
+  const clip = randomBytes(3 * 1024 * 1024);
+  const clipPut = await fetch(clipUp.url, { method: 'PUT', body: clip, headers: { 'Content-Type': 'video/mp4' } });
+  if (!clipPut.ok) throw new Error(`video PUT ${clipPut.status}`);
+  const clipConf = await as('/functions/v1/media-sign', { method: 'POST', body: { action: 'confirm', memory_id: memoryId, variant: 'playback', ext: 'mp4' } });
+  const [clipAsset] = await as(`/rest/v1/memory_assets?memory_id=eq.${memoryId}&variant=eq.playback&select=id,asset_type,bytes`);
+  if (clipConf.bytes !== clip.length || clipAsset?.asset_type !== 'video') throw new Error('video not measured/stored as video');
+  console.log(`5c. Plus: ${clip.length} byte clip uploaded with a 1 h link, measured and stored as video`);
+  await call(`/rest/v1/entitlements?family_id=eq.${familyId}`, { method: 'DELETE', token: service, key: service });
+  const clipDown = await as('/functions/v1/media-sign', { method: 'POST', body: { action: 'download', asset_ids: [clipAsset.id] } });
+  const clipGot = Buffer.from(await (await fetch(clipDown.urls[clipAsset.id])).arrayBuffer());
+  if (!clipGot.equals(clip)) throw new Error('video not downloadable after downgrade');
+  console.log('5d. after the plan ends the clip still downloads');
+
   await as(`/rest/v1/memories?id=eq.${memoryId}`, { method: 'DELETE' });
   const purge = await as('/functions/v1/media-sign', { method: 'POST', body: { action: 'purge' } });
   const gone = await fetch(signedUrl);
