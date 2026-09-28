@@ -72,6 +72,8 @@ Not deployed.
 
 Owner device check 2026-09-27: APK 83902ad approved (Home: recent photo strip, compact Today card).
 
+Owner device check 2026-09-27: pastel theme (peach and mint) and baby-over-journal icon approved.
+
 ## Latest build
 - EAS preview APK (pastel theme + baby icon, 2026-09-27): https://expo.dev/artifacts/eas/73vcoYd1IaSScR-MdVYKEXCYqh4YmrgGoRVN2TDP8IQ.apk — arm64 only, so it will not start on the x86_64 emulator (expected); use a phone.
 - EAS preview APK 83902ad (arm64, staging; compact Today card): https://expo.dev/artifacts/eas/Av9A_Sn-lqRfnfW0dceMiofjP-U9jmezGRhMVCU0SXg.apk
