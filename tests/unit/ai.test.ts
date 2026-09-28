@@ -18,8 +18,14 @@ test('cost estimate uses per-model prices; unknown models cost 0 rather than cra
 });
 
 test('unknown models can be priced by configuration', () => {
-  const u = { provider: 'openai', model: 'gpt-5.4-mini', inputTokens: 1_000_000, outputTokens: 1_000_000 };
+  const u = { provider: 'openai', model: 'gpt-9-unknown', inputTokens: 1_000_000, outputTokens: 1_000_000 };
   expect(estimateCostUsd(u)).toBe(0);
   expect(estimateCostUsd(u, '0.5,2')).toBe(2.5);
   expect(estimateCostUsd(u, 'junk')).toBe(0);
+});
+
+test('dated model snapshots use their base price', () => {
+  const u = { provider: 'openai', model: 'gpt-5.4-mini-2026-03-17', inputTokens: 1_000_000, outputTokens: 1_000_000 };
+  expect(estimateCostUsd(u)).toBeCloseTo(5.25);
+  expect(estimateCostUsd({ ...u, model: 'gpt-5.4-minimal' })).toBe(0); // prefix must end at a dash
 });

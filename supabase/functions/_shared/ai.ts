@@ -130,12 +130,20 @@ const PRICES: Record<string, [number, number]> = {
   'claude-opus-5': [5, 25],
   'claude-sonnet-5': [2, 10],
   'claude-haiku-4-5': [1, 5],
+  'gpt-5.4-mini': [0.75, 4.5], // OpenAI standard tier, checked 2026-09-28
 };
+
+// Providers report dated snapshots (e.g. gpt-5.4-mini-2026-03-17): match the longest known prefix.
+const priceFor = (model: string) =>
+  Object.keys(PRICES)
+    .filter((k) => model === k || model.startsWith(`${k}-`))
+    .sort((a, b) => b.length - a.length)
+    .map((k) => PRICES[k])[0];
 
 // Models not in the table can be priced without a deploy: AI_PRICE_PER_MTOK="in,out" (USD per million tokens).
 export function estimateCostUsd(u: Usage, override?: string): number {
   const custom = override?.split(',').map(Number);
-  const [inp, out] = PRICES[u.model] ?? (custom?.length === 2 && custom.every(Number.isFinite) ? custom : [0, 0]);
+  const [inp, out] = priceFor(u.model) ?? (custom?.length === 2 && custom.every(Number.isFinite) ? custom : [0, 0]);
   return (u.inputTokens * inp + u.outputTokens * out) / 1_000_000;
 }
 

@@ -69,6 +69,10 @@ are a free feature (§40) and come from the same call. With 20% paid at $4.99:
 | 1,000 | infra ~$293, margin ~65% | ~$113, ~87% | ~$113, ~87% |
 | 100,000 | ~$26,800, ~68% | ~$8,800, ~90% | ~$8,800, ~90% |
 
+**Update 2026-09-28:** staging now uses OpenAI `gpt-5.4-mini` ($0.75 / $4.50 per M tokens) for all AI. With Free
+families included, AI is ~$0.04 per family per month and the margin stays ~91–94% (`npm run cost:sim`, first row).
+`ai_usage.est_cost_usd` now records real dollar amounts for it. The note below applies only if Claude Opus is used.
+
 **Owner decision needed before launch:** either run the journal suggestion on a cheaper model
 (`AI_JOURNAL_MODEL=claude-haiku-4-5`, no code change), or make AI suggestions a Plus feature (keeps manual
 milestones free). Daily Story and Ask answers are already Plus-only; embeddings for search are free (edge runtime).

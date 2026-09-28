@@ -5,6 +5,7 @@
 const PRICE = {
   opus: { in: 5, out: 25 }, // $ per million tokens
   haiku: { in: 1, out: 5 },
+  mini: { in: 0.75, out: 4.5 }, // OpenAI gpt-5.4-mini, the staging default
   r2GbMonth: 0.015,
   r2OpsPerFamily: 0.0005,
   playFee: 0.15,
@@ -19,11 +20,11 @@ const supabase = (families) => Math.max(25, families * 0.0006); // Pro base, the
 
 const aiCost = (model, calls, tin, tout) => (calls * (tin * PRICE[model].in + tout * PRICE[model].out)) / 1e6;
 
-function scenario({ families, paidShare, price, journalModel, freeJournal }) {
+function scenario({ families, paidShare, price, journalModel, freeJournal, extrasModel = 'opus' }) {
   const paid = families * paidShare;
   const free = families - paid;
   const journal = aiCost(journalModel, USAGE.journalCalls, USAGE.journalIn, USAGE.journalOut);
-  const plusExtras = aiCost('opus', USAGE.dailyStories, USAGE.dailyIn, USAGE.dailyOut) + aiCost('opus', USAGE.asks, USAGE.askIn, USAGE.askOut);
+  const plusExtras = aiCost(extrasModel, USAGE.dailyStories, USAGE.dailyIn, USAGE.dailyOut) + aiCost(extrasModel, USAGE.asks, USAGE.askIn, USAGE.askOut);
   const ai = paid * (journal + plusExtras) + (freeJournal ? free * journal : 0);
   const storage = families * USAGE.storageGbYear1 * PRICE.r2GbMonth + paid * USAGE.originalsGb * PRICE.r2GbMonth + families * PRICE.r2OpsPerFamily;
   const infra = supabase(families) + storage + ai;
@@ -35,7 +36,8 @@ const fmt = (n) => `$${n >= 100 ? Math.round(n).toLocaleString('en-US') : n.toFi
 const rows = [];
 for (const families of [1_000, 10_000, 100_000]) {
   for (const [label, opts] of [
-    ['today: free gets AI journal (Opus)', { journalModel: 'opus', freeJournal: true }],
+    ['today: OpenAI gpt-5.4-mini for everything', { journalModel: 'mini', freeJournal: true, extrasModel: 'mini' }],
+    ['free gets AI journal on Claude Opus 5', { journalModel: 'opus', freeJournal: true }],
     ['free AI journal on Haiku', { journalModel: 'haiku', freeJournal: true }],
     ['AI journal paid-only (Opus)', { journalModel: 'opus', freeJournal: false }],
   ]) {
