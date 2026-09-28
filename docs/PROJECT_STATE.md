@@ -77,6 +77,7 @@ Owner device check 2026-09-27: pastel theme (peach and mint) and baby-over-journ
 Localization 2026-09-28: app UI in Korean and English, following the phone's language (English fallback). Server-side text (AI output) follows the language of each note.
 
 ## Latest build
+- EAS preview APK 1e0dbbe (arm64, staging; AI retry + AI status on memories): https://expo.dev/artifacts/eas/T3KPpLpyp6ENZYeYwyfqm34aYjAdRWX-csCUmPBOZYs.apk
 - EAS preview APK f0538b9 (arm64, staging; Korean UI, compact actions, milestone badges): https://expo.dev/artifacts/eas/kpg4IBkQEnOR8uRBT8jsvwxf5JdnBIIdReAYn61N4nc.apk
 - EAS preview APK 5947137 (arm64, staging; Korean + English UI): https://expo.dev/artifacts/eas/9QwUn_s5vNM_HKWfOmUIxarvykaVRIhjn8VLksxUi-I.apk
 - EAS preview APK (pastel theme + baby icon, 2026-09-27): https://expo.dev/artifacts/eas/73vcoYd1IaSScR-MdVYKEXCYqh4YmrgGoRVN2TDP8IQ.apk — arm64 only, so it will not start on the x86_64 emulator (expected); use a phone.
