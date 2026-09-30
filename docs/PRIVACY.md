@@ -15,7 +15,7 @@ privacy policy and the Google Play Data Safety form (masterplan §37, §50).
 | Comments, hearts | `comments`, `reactions` | Family engagement |
 | AI usage (tokens, cost, feature; no content) | `ai_usage` | Cost control (§39) |
 
-Not collected: location (photo EXIF, including GPS, is stripped from uploaded copies), contacts,
+Not collected: location (photo EXIF, including GPS, is stripped from uploaded copies; the recording location in video metadata is blanked before upload), contacts,
 advertising IDs, analytics about journal content. There is no advertising and no sale of data.
 
 ## Who can see it
@@ -23,7 +23,7 @@ advertising IDs, analytics about journal content. There is no advertising and no
 - Only members of the family, enforced in the database (row-level security, tested in `supabase/tests`).
 - Private memories: only the author.
 - Photos and videos are served through 5-minute signed URLs; there are no public links.
-- Videos are stored as recorded (no re-encoding), so any location the camera embedded is kept; the still frame used for previews is re-encoded without metadata.
+- Videos are stored as recorded (no re-encoding), except that the recording location in the MP4 metadata (Android ©xyz, iPhone ISO 6709) is overwritten with zeros on the device before upload; the still frame used for previews is re-encoded without metadata.
 - AI (when enabled): only the one note being processed, its date and the baby's age are sent to the
   AI provider (OpenAI; requests sent with `store: false`; Anthropic is supported as an alternative). No photos and no other history. A Daily Story, only when a family member asks
   for one, sends that day's notes the same way (`daily_stories`). Asking the journal a question sends the question

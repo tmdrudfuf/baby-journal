@@ -12,6 +12,7 @@
       "bundleIdentifier": "com.tmdrudfuf.babyjournal"
     },
     "android": {
+      "blockedPermissions": ["android.permission.SYSTEM_ALERT_WINDOW"],
       "adaptiveIcon": {
         "backgroundColor": "#FFF3EC",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

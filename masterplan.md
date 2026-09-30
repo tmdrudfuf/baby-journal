@@ -2175,5 +2175,4 @@ Only then may the project be marked:
 
 PRODUCTION RELEASED.
 
-as finish each step, commit and push it to github
 

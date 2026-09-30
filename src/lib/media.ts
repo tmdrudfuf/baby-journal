@@ -1,9 +1,10 @@
 // Photo capture + local storage. A photo is copied into app storage before we report success (§28, §54).
-import { Directory, File, Paths } from 'expo-file-system';
+import { Directory, File, FileMode, Paths } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { getThumbnailAsync } from 'expo-video-thumbnails';
 import { t } from '@/lib/i18n';
+import { stripVideoLocation } from '@/lib/video-location';
 
 export type PickedPhoto = { uri: string; width: number; height: number };
 export type PickedVideo = { uri: string; kind: 'video' };
@@ -99,6 +100,12 @@ export async function storeVideo(memoryId: string, video: PickedVideo) {
   dir.create({ intermediates: true, idempotent: true });
   const clip = new File(dir, 'playback.mp4');
   new File(video.uri).copySync(clip);
+  const handle = clip.open(FileMode.ReadWrite);
+  try {
+    stripVideoLocation(handle, clip.size);
+  } finally {
+    handle.close();
+  }
   const frame = await getThumbnailAsync(clip.uri, { time: 0, quality: 0.9 });
   const still = { uri: frame.uri, width: frame.width, height: frame.height };
   return {
