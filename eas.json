@@ -22,6 +22,14 @@
     "production": {
       "environment": "production",
       "autoIncrement": true
+    },
+    "playtest": {
+      "distribution": "store",
+      "environment": "preview",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      }
     }
   },
   "submit": {
